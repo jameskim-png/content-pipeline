@@ -1,0 +1,10 @@
+data/
+output/
+personas/
+.env
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+separated/
+.DS_Store

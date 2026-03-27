@@ -1,0 +1,14 @@
+{
+  "name": "content-pipeline",
+  "version": "2.0.0",
+  "description": "AI content generation pipeline — characters + multiple content types",
+  "author": "mlt380",
+  "commands": ["commands/cast.md", "commands/spell.md"],
+  "workflows": ["workflow.json"],
+  "requires": {
+    "python": ">=3.10",
+    "tools": ["ffmpeg"],
+    "env": ["FAL_KEY"],
+    "auth": ["gcloud"]
+  }
+}

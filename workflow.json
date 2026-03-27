@@ -1,0 +1,52 @@
+{
+  "content_types": {
+    "talking-head": {
+      "name": "Talking Head",
+      "description": "AI 캐릭터 토킹헤드 릴스/숏츠",
+      "modes": {
+        "create": {
+          "name": "오리지널 생성",
+          "prompt": "prompts/talking-head/create.md"
+        },
+        "copy": {
+          "name": "인스타 영상 재창조",
+          "prompt": "prompts/talking-head/copy.md"
+        }
+      },
+      "phases": {
+        "create": {
+          "cast": [
+            {"id": "context", "prompt": "prompts/talking-head/create-phase-context.md", "description": "Environment check + character selection"},
+            {"id": "script", "prompt": "prompts/talking-head/create-phase-script.md", "description": "Script generation/input + validation"},
+            {"id": "motion", "prompt": "prompts/talking-head/create-phase-motion.md", "description": "Motion library check + reference matching"},
+            {"id": "review", "prompt": "prompts/talking-head/create-phase-review.md", "description": "Cost estimate + user approval"}
+          ],
+          "spell": [
+            {"id": "audio", "prompt": "prompts/talking-head/create-phase-audio.md", "description": "TTS voice generation"},
+            {"id": "video", "prompt": "prompts/talking-head/create-phase-video.md", "description": "Kling 2.6 + Sync Lipsync v2"},
+            {"id": "post", "prompt": "prompts/talking-head/create-phase-post.md", "description": "Audio mixing + subtitles + stitching"}
+          ]
+        },
+        "copy": {
+          "cast": [
+            {"id": "download", "prompt": "prompts/talking-head/copy-phase-download.md", "description": "Instagram download + audio separation"},
+            {"id": "analyze", "prompt": "prompts/talking-head/copy-phase-analyze.md", "description": "STT + chunking + content analysis"},
+            {"id": "plan", "prompt": "prompts/talking-head/copy-phase-plan.md", "description": "Character selection + translation planning"},
+            {"id": "review", "prompt": "prompts/talking-head/copy-phase-review.md", "description": "Cost estimate + user approval"}
+          ],
+          "spell": [
+            {"id": "prepare", "prompt": "prompts/talking-head/copy-phase-prepare.md", "description": "Character image + translation + TTS"},
+            {"id": "generate", "prompt": "prompts/talking-head/copy-phase-generate.md", "description": "Video generation (Kling 2.6 + Sync Lipsync)"},
+            {"id": "post", "prompt": "prompts/talking-head/copy-phase-post.md", "description": "Audio mixing + subtitles + stitching"}
+          ]
+        }
+      }
+    }
+  },
+  "shared": {
+    "character": {
+      "create": "prompts/character/create.md",
+      "view": "prompts/character/view.md"
+    }
+  }
+}

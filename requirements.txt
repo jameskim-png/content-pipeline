@@ -1,0 +1,19 @@
+# Local (no API key needed)
+instaloader
+demucs
+silero-vad
+scenedetect[opencv]
+pydub
+ffmpeg-python
+
+# API clients
+fal-client
+requests
+elevenlabs
+
+# Core dependencies
+python-dotenv
+torch
+torchaudio
+numpy
+Pillow
