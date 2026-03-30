@@ -75,7 +75,7 @@ print('Cost:', json.dumps(cost, indent=2))
 잔액 + 예상 비용:
 ├── fal.ai: ${fal_balance}
 ├── TTS (Google Cloud): ~${tts_cost}
-├── 이미지 (Flux 1.1 Pro): ~${image_cost} ({N_CHUNKS}장 x $0.06)
+├── 이미지 (FLUX.2 Pro): ~${image_cost} ({N_CHUNKS}장 x $0.03)
 ├── 영상 (Grok Imagine Video): ~${video_cost} ({TOTAL_DURATION}초 x $0.05)
 └── 총 예상 비용: ~${total}
 

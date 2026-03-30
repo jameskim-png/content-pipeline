@@ -1,4 +1,4 @@
-"""Scene image generation using Flux 1.1 Pro via fal.ai."""
+"""Scene image generation using FLUX.2 Pro via fal.ai."""
 
 from pathlib import Path
 
@@ -14,7 +14,7 @@ def flux_generate_image(
     height: int = 1280,
     seed: int | None = None,
 ) -> Path:
-    """Generate a single image using Flux 1.1 Pro via fal.ai.
+    """Generate a single image using FLUX.2 Pro via fal.ai.
 
     Args:
         prompt: Image generation prompt (English recommended for best results).
@@ -32,14 +32,13 @@ def flux_generate_image(
     arguments = {
         "prompt": prompt,
         "image_size": {"width": width, "height": height},
-        "num_images": 1,
         "safety_tolerance": "5",
     }
     if seed is not None:
         arguments["seed"] = seed
 
     result = fal_client.subscribe(
-        "fal-ai/flux-pro/v1.1",
+        "fal-ai/flux-2-pro",
         arguments=arguments,
     )
 
@@ -111,7 +110,7 @@ def generate_scene_images(
         results.append({
             "chunk_id": chunk_id,
             "image_path": str(output_path),
-            "cost": 0.06,  # Flux 1.1 Pro ~$0.06/image
+            "cost": 0.03,  # FLUX.2 Pro ~$0.03/image (1MP)
         })
         print(f"  {chunk_id}: done")
 

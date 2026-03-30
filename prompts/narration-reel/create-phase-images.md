@@ -71,7 +71,7 @@ open {OUTPUT_DIR}/images/{CHUNK_ID}_scene.png
 ```
 
 ## Rules
-- Flux 1.1 Pro via fal.ai
+- FLUX.2 Pro via fal.ai
 - 720x1280 (9:16 세로형)
 - style_prompt + scene_description 결합
 - 기존 파일은 자동 스킵 (idempotent)

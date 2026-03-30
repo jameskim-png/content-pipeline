@@ -1,4 +1,4 @@
-"""Persona management: character sheet + background generation via fal.ai."""
+"""Persona management: character sheet + background generation via fal.ai (FLUX.2 Pro)."""
 
 import json
 from pathlib import Path
@@ -122,7 +122,7 @@ def generate_reference_image(
     style: str = "real",
     seed: int = 42,
 ) -> Path:
-    """Generate character directly on background using nano-banana-2.
+    """Generate character directly on background using FLUX.2 Pro.
 
     No background removal needed — character is composited in the generation prompt.
     Returns path to saved reference image (720x1280, 9:16).
@@ -134,12 +134,12 @@ def generate_reference_image(
     prompt = build_reference_prompt(persona_spec, background_desc, style)
 
     result = fal_client.subscribe(
-        "fal-ai/nano-banana-2",
+        "fal-ai/flux-2-pro",
         arguments={
             "prompt": prompt,
             "image_size": {"width": 720, "height": 1280},
             "seed": seed,
-            "num_images": 1,
+            "safety_tolerance": "5",
         },
     )
 
@@ -197,7 +197,7 @@ def generate_character_sheet(
     persona_name: str,
     seed: int = 42,
 ) -> Path:
-    """Generate character sheet image using fal.ai Nano Banana 2.
+    """Generate character sheet image using FLUX.2 Pro.
 
     Returns path to saved character_sheet.png.
     """
@@ -208,12 +208,12 @@ def generate_character_sheet(
     prompt = build_character_sheet_prompt(persona_spec)
 
     result = fal_client.subscribe(
-        "fal-ai/nano-banana-2",
+        "fal-ai/flux-2-pro",
         arguments={
             "prompt": prompt,
-            "aspect_ratio": "16:9",
+            "image_size": "landscape_16_9",
             "seed": seed,
-            "num_images": 1,
+            "safety_tolerance": "5",
         },
     )
 
@@ -230,7 +230,7 @@ def generate_background(
     persona_name: str,
     seed: int = 42,
 ) -> Path:
-    """Generate background image using fal.ai Nano Banana 2.
+    """Generate background image using FLUX.2 Pro.
 
     Returns path to saved background.png.
     """
@@ -241,12 +241,12 @@ def generate_background(
     prompt = build_background_prompt(background_desc)
 
     result = fal_client.subscribe(
-        "fal-ai/nano-banana-2",
+        "fal-ai/flux-2-pro",
         arguments={
             "prompt": prompt,
-            "aspect_ratio": "9:16",
+            "image_size": {"width": 720, "height": 1280},
             "seed": seed,
-            "num_images": 1,
+            "safety_tolerance": "5",
         },
     )
 

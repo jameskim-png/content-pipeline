@@ -71,7 +71,7 @@ print(json.dumps(scene_clips, indent=2))
 ```
 
 ## Rules
-- 이미지: Flux 1.1 Pro, 720x1280
+- 이미지: FLUX.2 Pro, 720x1280
 - 비디오: Grok Imagine Video, 720p, lip sync 없음
 - duration = voice_duration + 0.5초
 - 에러 시 해당 씬만 재시도 (skip 로직 내장)

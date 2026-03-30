@@ -18,8 +18,9 @@ AI 콘텐츠 생성 파이프라인 (Claude Code 기반). 캐릭터 관리 + 다
   - 인스타 재창조: Instagram 영상 → AI 장면으로 재창조
 
 ## 기술 스택
+- **캐릭터 이미지 생성**: FLUX.2 Pro (fal.ai) — 캐릭터 시트, 레퍼런스, 배경
 - **Talking Head 영상 생성**: Grok Imagine Video (fal.ai) + Sync Lipsync v2
-- **Narration Reel 이미지**: Flux 1.1 Pro (fal.ai)
+- **Narration Reel 이미지**: FLUX.2 Pro (fal.ai)
 - **Narration Reel 영상**: Grok Imagine Video (fal.ai, lip sync 없음)
 - **TTS**: Google Cloud TTS `ko-KR-Chirp3-HD-Leda`
 - **STT**: fal.ai Whisper (copy 파이프라인)

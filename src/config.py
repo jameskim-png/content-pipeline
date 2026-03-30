@@ -157,7 +157,8 @@ def estimate_job_cost(
     tts_cost = tts_rates.get(tts_engine, tts_rates["fal"])()
 
     # kling26/grok only need 1 reference image; others need character sheet + background
-    image_cost = 0.04 if model.lower() in ("kling26", "grok") else 0.08
+    # FLUX.2 Pro: ~$0.03/image (1MP), ~$0.045/image (1080p)
+    image_cost = 0.045 if model.lower() in ("kling26", "grok") else 0.09
 
     video_rates = {
         "heygen": 0.50,
@@ -219,8 +220,8 @@ def estimate_narration_cost(
     }
     tts_cost = tts_rates.get(tts_engine, tts_rates["google"])()
 
-    # Image: Flux 1.1 Pro ~$0.06/image, one per scene
-    image_cost = round(n_chunks * 0.06, 4)
+    # Image: FLUX.2 Pro ~$0.03/image (1MP), one per scene
+    image_cost = round(n_chunks * 0.03, 4)
 
     # Video: Grok Imagine Video ~$0.05/sec at 720p, no lip sync
     video_cost = round(total_duration * 0.05, 4)
