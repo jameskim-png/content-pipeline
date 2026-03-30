@@ -92,8 +92,13 @@ translation_chunks = [
 
 subtitle_chunks = recalculate_subtitle_timings(voice_manifest, translation_chunks)
 
+# Use language-appropriate subtitle font
+from src.subtitles import get_subtitle_font
+sub_font = get_subtitle_font('{LANG_CODE}')
+
 output = Path('{OUTPUT_DIR}/subtitles.ass')
 style_params = style_to_ass_params(get_style('{SUBTITLE_STYLE}'))
+style_params['font_name'] = sub_font
 generate_ass(subtitle_chunks, output, **style_params)
 print(f'Subtitles saved: {output} ({len(subtitle_chunks)} entries)')
 "
@@ -128,7 +133,7 @@ from pathlib import Path
 video = Path('{OUTPUT_DIR}/final_subtitled.mp4') if Path('{OUTPUT_DIR}/final_subtitled.mp4').exists() else Path('{OUTPUT_DIR}/final.mp4')
 output = Path('{OUTPUT_DIR}/final_titled.mp4')
 
-burn_title(video, '{TITLE}', '{TITLE_PRESET}', output, duration='{TITLE_DURATION}')
+burn_title(video, '{TITLE}', '{TITLE_PRESET}', output, duration='{TITLE_DURATION}', language='{LANG_CODE}')
 print(f'Titled video: {output}')
 "
 ```

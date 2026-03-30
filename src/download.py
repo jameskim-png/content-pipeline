@@ -19,7 +19,8 @@ def parse_instagram_url(url: str) -> dict:
       - https://www.instagram.com/username/
       - https://www.instagram.com/username/reels/
     """
-    url = url.strip().rstrip("/")
+    # Strip query params and trailing slash
+    url = url.strip().split("?")[0].rstrip("/")
 
     # Single post/reel: /reel/SHORTCODE or /p/SHORTCODE
     post_match = re.search(r"instagram\.com/(?:reel|p)/([A-Za-z0-9_-]+)", url)

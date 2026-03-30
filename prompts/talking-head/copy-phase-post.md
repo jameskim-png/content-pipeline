@@ -30,7 +30,10 @@ translation = load_json(Path('{OUTPUT_DIR}/translated_script.json'))
 subtitle_chunks = recalculate_subtitle_timings(voice_manifest, translation['chunks'])
 
 from src.subtitle_styles import get_style, style_to_ass_params
+from src.subtitles import get_subtitle_font
+sub_font = get_subtitle_font('{LANG_CODE}')
 style_params = style_to_ass_params(get_style('{SUBTITLE_STYLE}'))
+style_params['font_name'] = sub_font
 generate_ass(subtitle_chunks, Path('{OUTPUT_DIR}/subtitles.ass'), **style_params)
 print(f'Subtitles generated with {len(subtitle_chunks)} entries')
 "

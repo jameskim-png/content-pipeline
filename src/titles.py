@@ -7,6 +7,46 @@ from pathlib import Path
 from .config import FONTS_DIR
 
 
+# --- CJK Font Resolution ---
+
+# Language → list of (font_file_in_assets, system_font_path) candidates.
+# Tries assets/fonts/ first, then system paths in order.
+_CJK_FONT_FALLBACKS: dict[str, list[str]] = {
+    "ja": [
+        "/System/Library/Fonts/ヒラギノ角ゴシック W6.ttc",          # macOS Hiragino Bold
+        "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",          # macOS Hiragino Regular
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",     # Linux Noto
+    ],
+    "zh": [
+        "/System/Library/Fonts/PingFang.ttc",                       # macOS PingFang
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+    ],
+}
+
+
+def _resolve_font_path(preset_font_file: str, language: str | None = None) -> Path:
+    """Resolve the best font file path for the given language.
+
+    Priority:
+    1. assets/fonts/{preset_font_file} — if language is ko or None (default)
+    2. Language-specific system fonts — for ja, zh, etc.
+    3. Fallback to the preset font even if it may not render CJK correctly
+    """
+    # Default: use the preset font from assets/fonts/
+    assets_font = FONTS_DIR / preset_font_file
+    if not language or language == "ko":
+        return assets_font
+
+    # For non-Korean CJK languages, prefer system fonts that support the charset
+    for system_path in _CJK_FONT_FALLBACKS.get(language, []):
+        p = Path(system_path)
+        if p.exists():
+            return p
+
+    # Fallback: try assets font anyway
+    return assets_font
+
+
 # --- Title Presets ---
 
 TITLE_PRESETS = {
@@ -109,6 +149,7 @@ def _build_drawtext_filter(
     preset_name: str,
     duration: str = "full",
     video_duration: float | None = None,
+    language: str | None = None,
 ) -> str:
     """Build FFmpeg drawtext filter string for a given preset.
 
@@ -117,9 +158,10 @@ def _build_drawtext_filter(
 
     duration: "full" (entire video) or "intro" (first 5s + 0.5s fade-out).
     video_duration: total video length in seconds (used for enable expression).
+    language: language code (e.g. "ja", "ko") for CJK font selection.
     """
     preset = TITLE_PRESETS[preset_name]
-    font_path = FONTS_DIR / preset["font_file"]
+    font_path = _resolve_font_path(preset["font_file"], language)
     fontsize = preset["fontsize"]
     base_y = preset["y"]
     line_height = int(fontsize * 1.4)
@@ -171,15 +213,17 @@ def burn_title(
     preset_name: str,
     output_path: Path,
     duration: str = "full",
+    language: str | None = None,
 ) -> Path:
     """Burn title overlay onto video using FFmpeg drawtext.
 
     preset_name: "clean", "impact", or "box".
     duration: "full" (default) or "intro" (first 5s + fade-out).
+    language: language code for CJK font selection (e.g. "ja", "ko").
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    filter_str = _build_drawtext_filter(title_text, preset_name, duration)
+    filter_str = _build_drawtext_filter(title_text, preset_name, duration, language=language)
 
     cmd = [
         "ffmpeg", "-y",

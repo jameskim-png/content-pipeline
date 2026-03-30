@@ -6,6 +6,22 @@ from pathlib import Path
 from .config import ensure_dirs
 
 
+# Language → ASS font name (system font name, not file path).
+_SUBTITLE_FONTS: dict[str, str] = {
+    "ja": "Hiragino Kaku Gothic ProN",
+    "ko": "Apple SD Gothic Neo",
+    "zh": "PingFang SC",
+}
+
+
+def get_subtitle_font(language: str | None = None) -> str:
+    """Return the best ASS font name for the given language."""
+    if language:
+        lang = language.split("-")[0]  # "ja-JP" → "ja"
+        return _SUBTITLE_FONTS.get(lang, "Arial")
+    return "Arial"
+
+
 def generate_srt(
     chunks: list[dict],
     output_path: Path,

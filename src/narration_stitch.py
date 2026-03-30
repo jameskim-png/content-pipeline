@@ -168,8 +168,9 @@ def stitch_narration(
         "-i", str(audio_source),
         "-map", "0:v:0",
         "-map", "1:a:0",
-        "-c:v", "libx264", "-preset", "medium", "-crf", "18",
-        "-c:a", "aac", "-b:a", "192k",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p",
+        "-preset", "medium", "-crf", "18",
+        "-c:a", "aac", "-ar", "48000", "-b:a", "192k",
         "-af", f"loudnorm=I={normalize_lufs}:TP=-1.5:LRA=11",
         "-shortest",
         "-movflags", "+faststart",
@@ -261,7 +262,8 @@ def _normalize_silent_clip(
             f"pad={target_width}:{target_height}:(ow-iw)/2:(oh-ih)/2,"
             f"fps={target_fps}"
         ),
-        "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p",
+        "-preset", "fast", "-crf", "18",
         str(output_path),
     ]
     subprocess.run(cmd, capture_output=True, check=True)

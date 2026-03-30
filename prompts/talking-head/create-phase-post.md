@@ -36,7 +36,10 @@ subtitle_chunks = recalculate_subtitle_timings(voice_manifest, translation['chun
 output = Path('{OUTPUT_DIR}/subtitles.ass')
 
 from src.subtitle_styles import get_style, style_to_ass_params
+from src.subtitles import get_subtitle_font
+sub_font = get_subtitle_font('{LANG_CODE}')
 style_params = style_to_ass_params(get_style('{SUBTITLE_STYLE}'))
+style_params['font_name'] = sub_font
 generate_ass(subtitle_chunks, output, **style_params)
 print(f'Subtitles saved: {output} ({len(subtitle_chunks)} entries)')
 "

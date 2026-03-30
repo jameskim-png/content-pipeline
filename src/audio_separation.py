@@ -38,8 +38,9 @@ def separate_audio(video_path: Path, output_dir: Path) -> dict[str, Path]:
     ]
 
     # Actually, htdemucs does 4-stem by default, let's use that
+    import sys
     cmd = [
-        "python", "-m", "demucs",
+        sys.executable, "-m", "demucs",
         "--name", DEMUCS_MODEL,
         "--out", str(output_dir / "_demucs_tmp"),
         str(raw_audio),
