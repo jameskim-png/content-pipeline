@@ -36,25 +36,25 @@ else:
 
 ---
 
-## 메인 메뉴: 무엇을 할까요?
+## 메인 메뉴
 
-```
-무엇을 할까요?
-
-1. 캐릭터 관리
-2. 콘텐츠 생성
-```
+AskUserQuestion으로 질문:
+- question: "무엇을 할까요?"
+- header: "메인 메뉴"
+- options:
+  - label: "캐릭터 관리", description: "새로 만들기 / 기존 캐릭터 보기"
+  - label: "콘텐츠 생성", description: "Talking Head / Narration Reel"
 
 ---
 
 ## 경로 1: 캐릭터 관리
 
-```
-캐릭터 관리
-
-1. 새로 만들기
-2. 기존 캐릭터 보기
-```
+AskUserQuestion으로 질문:
+- question: "캐릭터 관리 — 무엇을 할까요?"
+- header: "캐릭터"
+- options:
+  - label: "새로 만들기", description: "새 AI 캐릭터 생성"
+  - label: "기존 캐릭터 보기", description: "저장된 캐릭터 목록 조회"
 
 ### 1-1. 새로 만들기
 → Read `prompts/character/create.md` → 해당 프롬프트의 지시에 따라 실행
@@ -68,12 +68,12 @@ else:
 
 ### Step 1: 콘텐츠 타입 선택
 
-```
-어떤 콘텐츠를 만들까요?
-
-1. Talking Head — AI 캐릭터 토킹헤드 릴스/숏츠
-2. Narration Reel — AI 장면 + 나레이션 릴스
-```
+AskUserQuestion으로 질문:
+- question: "어떤 콘텐츠를 만들까요?"
+- header: "콘텐츠 타입"
+- options:
+  - label: "Talking Head", description: "AI 캐릭터 토킹헤드 릴스/숏츠"
+  - label: "Narration Reel", description: "AI 장면 + 나레이션 릴스"
 
 (`workflow.json`의 `content_types` 참조.)
 
@@ -81,12 +81,12 @@ else:
 
 #### Talking Head 선택 시
 
-```
-어떤 방식으로 만들까요?
-
-1. 오리지널 생성 — 제목/스크립트로 처음부터
-2. 인스타 영상 재창조 — 기존 영상을 AI 캐릭터로
-```
+AskUserQuestion으로 질문:
+- question: "어떤 방식으로 만들까요?"
+- header: "생성 방식"
+- options:
+  - label: "오리지널 생성", description: "제목/스크립트로 처음부터"
+  - label: "인스타 영상 재창조", description: "기존 영상을 AI 캐릭터로"
 
 ### Step 2-1: 오리지널 생성 (Talking Head)
 → Read `prompts/talking-head/create.md` → 해당 프롬프트의 지시에 따라 실행
@@ -96,12 +96,12 @@ else:
 
 #### Narration Reel 선택 시
 
-```
-어떤 방식으로 만들까요?
-
-1. 오리지널 생성 — 주제로 처음부터
-2. 인스타 영상 재창조 — 기존 영상을 AI 장면으로
-```
+AskUserQuestion으로 질문:
+- question: "어떤 방식으로 만들까요?"
+- header: "생성 방식"
+- options:
+  - label: "오리지널 생성", description: "주제로 처음부터"
+  - label: "인스타 영상 재창조", description: "기존 영상을 AI 장면으로"
 
 ### Step 2-3: 오리지널 생성 (Narration Reel)
 → Read `prompts/narration-reel/create.md` → 해당 프롬프트의 지시에 따라 실행
