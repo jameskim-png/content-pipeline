@@ -415,6 +415,9 @@ def _build_grok_prompt(
         text_hint = chunk_text[:200]
         parts.append(f'Speaking: "{text_hint}"')
 
+    # Negative: no text/letters in generated video
+    parts.append("no text, no letters, no words, no subtitles, no captions, no typography, no writing on screen")
+
     prompt = ", ".join(parts)
     # Enforce Grok 4096-char limit
     if len(prompt) > 4000:
@@ -511,6 +514,9 @@ def _build_enhanced_prompt(
         if chunk_text:
             delivery = _infer_delivery_from_text(chunk_text, emotion or "neutral", vibe)
             parts.append(delivery)
+
+        # Negative: no text/letters in generated video
+        parts.append("no text, no letters, no words, no subtitles, no captions, no typography, no writing on screen")
 
         return ", ".join(parts)
 

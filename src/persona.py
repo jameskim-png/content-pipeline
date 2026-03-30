@@ -179,6 +179,8 @@ def build_character_sheet_prompt(persona_spec: dict) -> str:
         desc_parts.append(f"Overall vibe: {persona_spec['vibe']}")
 
     parts.append("Character: " + ", ".join(desc_parts))
+    parts.append("")
+    parts.append("No text, no letters, no words, no labels, no typography, no writing anywhere in the image.")
 
     return "\n".join(parts)
 
@@ -188,7 +190,8 @@ def build_background_prompt(background_desc: str) -> str:
     return (
         f"Empty room/environment for video background. No people. Vertical 9:16 ratio.\n\n"
         f"Scene: {background_desc}\n\n"
-        f"Photorealistic, high quality, suitable as a video call or talking head background."
+        f"Photorealistic, high quality, suitable as a video call or talking head background.\n\n"
+        f"No text, no letters, no words, no signs, no typography, no writing anywhere in the image."
     )
 
 

@@ -104,6 +104,9 @@ def generate_scene_images(
             print(f"  {chunk_id}: no scene_description, skipping")
             continue
 
+        # Negative: no text/letters in generated images
+        prompt += ". No text, no letters, no words, no typography, no writing, no watermarks"
+
         print(f"  {chunk_id}: generating image...")
         flux_generate_image(prompt, output_path, width=width, height=height)
 
