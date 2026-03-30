@@ -2,15 +2,47 @@
 
 AI 콘텐츠 생성 파이프라인 (Claude Code 기반).
 
-캐릭터를 만들고, 다양한 콘텐츠 타입으로 영상을 생성합니다. 현재 Talking Head 지원.
+캐릭터를 만들고, 다양한 콘텐츠 타입으로 릴스/숏츠 영상을 생성합니다.
 
-## 전제조건
+## 콘텐츠 타입
 
-- Python 3.10+
-- ffmpeg
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI
-- fal.ai 계정 + API 키
-- Google Cloud TTS 인증 (`gcloud auth application-default login`)
+### 1. Talking Head — AI 캐릭터 토킹헤드
+
+AI 캐릭터가 카메라를 보고 말하는 영상. 립싱크 포함.
+
+| | Create (오리지널) | Copy (인스타 재창조) |
+|---|---|---|
+| **입력** | 제목/스크립트 | Instagram URL |
+| **캐릭터** | 기존 선택 or 새로 생성 | 기존 선택 or 새로 생성 |
+| **영상 생성** | Grok + Sync Lipsync | Grok + Sync Lipsync |
+| **오디오** | TTS | 원본 BGM + TTS |
+| **비용** | ~$2.10/30초 | ~$2.15/30초 |
+
+**Create 흐름:**
+스크립트 → TTS → Grok 영상 → Sync Lipsync → 어셈블리 + 자막/타이틀
+
+**Copy 흐름:**
+다운로드 → Demucs 분리 → Whisper STT → 청킹 → 번역 → TTS → Grok → Lipsync → BGM 믹스 → 어셈블리
+
+### 2. Narration Reel — AI 장면 + 나레이션
+
+씬마다 AI 이미지를 생성하고 애니메이션화, 나레이션 보이스오버.
+
+| | Create (오리지널) | Copy (인스타 재창조) |
+|---|---|---|
+| **입력** | 주제 + 시각 스타일 | Instagram URL |
+| **이미지** | Flux 1.1 Pro | Flux 1.1 Pro |
+| **영상** | Grok Imagine Video (무음) | Grok Imagine Video (무음) |
+| **오디오** | TTS 나레이션 | 원본 분석 → TTS |
+| **비용** | ~$1.80/30초 | ~$2.00/30초 |
+
+**Create 흐름:**
+스크립트+씬 설명 → TTS → Flux 이미지 → Grok 애니메이션 → 클립 결합 + 나레이션 오버레이
+
+**Copy 흐름:**
+다운로드 → 분석 (STT/프레임) → 재창조 스크립트 → TTS → Flux → Grok → 어셈블리
+
+---
 
 ## Quick Start
 
@@ -21,92 +53,158 @@ git clone <repo-url> && cd content-pipeline
 # 2. Setup (venv + deps + API keys)
 bash setup.sh
 
-# 3. Open in Claude Code
+# 3. Claude Code에서 실행
 claude
-
-# 4. Run the pipeline
 # /content-pipeline
 ```
+
+## 전제조건
+
+- Python 3.10+
+- ffmpeg
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI
+- fal.ai 계정 + API 키 (`FAL_KEY`)
+- Google Cloud TTS 인증 (`gcloud auth application-default login`)
+
+## API 키 설정
+
+`.env` 파일:
+```
+FAL_KEY=your_fal_ai_key
+```
+
+Google Cloud TTS:
+```bash
+gcloud auth application-default login
+```
+
+---
+
+## 기술 스택
+
+### 영상 생성
+| 모델 | 용도 | API |
+|------|------|-----|
+| **Grok Imagine Video** | 토킹헤드 영상 / 씬 애니메이션 | fal.ai |
+| **Sync Lipsync v2** | 립싱크 합성 (토킹헤드) | fal.ai |
+| **Flux 1.1 Pro** | 씬 이미지 생성 (나레이션 릴) | fal.ai |
+| Kling 2.6 Motion Control | 모션 트랜스퍼 (대안) | fal.ai |
+| VEO 3 | 영상 생성 (대안) | fal.ai |
+| HeyGen | 포토 아바타 (대안) | HeyGen API |
+
+### 음성 & 오디오
+| 엔진 | 용도 | API |
+|------|------|-----|
+| **Google Chirp3-HD** | TTS (기본) | Google Cloud |
+| ElevenLabs | TTS (대안) | ElevenLabs |
+| fal.ai F5-TTS | TTS (폴백) | fal.ai |
+| Demucs | 오디오 분리 (로컬) | - |
+| Whisper | STT (음성→텍스트) | fal.ai |
+
+### 지원 언어
+| 언어 | 코드 | TTS 음성 |
+|------|------|---------|
+| 한국어 | ko | ko-KR-Chirp3-HD-Leda |
+| 日本語 | ja | ja-JP-Chirp3-HD-Leda |
+| English | en | en-US-Chirp3-HD-Leda |
+| 中文 | zh | cmn-CN-Chirp3-HD-Leda |
+| Español | es | es-ES-Chirp3-HD-Leda |
+
+---
 
 ## 프로젝트 구조
 
 ```
 content-pipeline/
 ├── .claude/commands/
-│   └── content-pipeline.md    # 통합 진입점 (유일한 커맨드)
-├── prompts/                   # 파이프라인 프롬프트
+│   └── content-pipeline.md        # 통합 진입점 (/content-pipeline)
+├── prompts/
 │   ├── character/
-│   │   ├── create.md          # 캐릭터 생성
-│   │   └── view.md            # 캐릭터 목록 조회
-│   └── talking-head/
-│       ├── create.md          # 오리지널 토킹헤드 생성
-│       ├── copy.md            # 인스타 영상 재창조
-│       └── *-phase-*.md       # 세부 phase 프롬프트
-├── src/                       # Python 모듈
-│   ├── config.py              # 설정, API 키, EMOTION_CATEGORIES
-│   ├── download.py            # Instagram 다운로드
-│   ├── audio_separation.py    # Demucs 오디오 분리
-│   ├── stt.py                 # fal.ai Whisper STT
-│   ├── chunking.py            # VAD + 씬 감지 청킹
-│   ├── analysis.py            # 영상 분석 프롬프트
-│   ├── translation.py         # 번역 프롬프트
-│   ├── persona.py             # 캐릭터 관리
-│   ├── script_gen.py          # 스크립트 생성
-│   ├── motion_refs.py         # 모션 레퍼런스 라이브러리
-│   ├── voice.py               # TTS (Google Cloud / fal.ai)
-│   ├── video_gen.py           # 영상 생성 (Kling 2.6 + Sync Lipsync)
-│   ├── audio_mixing.py        # 오디오 믹싱
-│   ├── subtitles.py           # 자막 생성 + 번인
-│   ├── stitching.py           # 최종 영상 스티칭
-│   └── utils.py               # 유틸리티
-├── personas/                  # 생성된 캐릭터 (이미지 + 메타데이터)
-├── data/                      # 다운로드된 원본 영상 + 분석 결과
-├── output/                    # 최종 생성 영상
-├── workflow.json              # 콘텐츠 타입 + 프롬프트 매핑
-├── setup.sh                   # 원커맨드 환경 셋업
-├── requirements.txt
-├── CLAUDE.md                  # Claude Code 컨텍스트
-└── README.md
+│   │   ├── create.md              # 캐릭터 생성
+│   │   └── view.md                # 캐릭터 목록
+│   ├── talking-head/
+│   │   ├── create.md              # TH 오리지널
+│   │   ├── copy.md                # TH 인스타 재창조
+│   │   └── *-phase-*.md           # 세부 phase
+│   └── narration-reel/
+│       ├── create.md              # NR 오리지널
+│       ├── copy.md                # NR 인스타 재창조
+│       └── *-phase-*.md           # 세부 phase
+├── src/
+│   ├── config.py                  # 설정, API 키, 비용 추정
+│   ├── persona.py                 # 캐릭터 생성/관리
+│   ├── motion_refs.py             # 모션 레퍼런스 라이브러리 (Kling26)
+│   ├── download.py                # Instagram 다운로드
+│   ├── audio_separation.py        # Demucs 4-stem 분리
+│   ├── stt.py                     # Whisper STT
+│   ├── chunking.py                # VAD + 씬 감지 청킹
+│   ├── analysis.py                # 영상 분석 프롬프트
+│   ├── script_gen.py              # 스크립트 생성
+│   ├── translation.py             # 번역
+│   ├── languages.py               # 언어 설정 + TTS 음성 매핑
+│   ├── voice.py                   # TTS (Google/ElevenLabs/fal)
+│   ├── image_gen.py               # Flux 씬 이미지 생성
+│   ├── video_gen.py               # 영상 생성 (Grok/Kling/VEO/HeyGen)
+│   ├── review.py                  # 프리-제너레이션 검증
+│   ├── audio_mixing.py            # 오디오 믹싱
+│   ├── stitching.py               # TH 어셈블리
+│   ├── narration_stitch.py        # NR 어셈블리 (싱크 나레이션)
+│   ├── subtitles.py               # SRT/ASS 자막 + 번인
+│   ├── subtitle_styles.py         # 자막 스타일 라이브러리
+│   ├── titles.py                  # 타이틀 오버레이 + HTML 프리뷰
+│   └── utils.py                   # JSON, ffmpeg 유틸
+├── personas/                      # 생성된 캐릭터
+├── data/                          # 다운로드/분석 데이터
+├── output/                        # 최종 영상
+├── assets/fonts/                  # Pretendard 폰트
+├── workflow.json                  # 콘텐츠 타입 라우팅
+├── setup.sh                       # 환경 셋업
+└── requirements.txt
 ```
 
-## 콘텐츠 타입
+## 모듈 관계
 
-### Talking Head
-
-AI 캐릭터 토킹헤드 릴스/숏츠.
-
-**오리지널 생성** (`/content-pipeline` → 콘텐츠 생성 → Talking Head → Create)
-1. 스크립트 생성 (제목 → AI 생성 or 직접 입력)
-2. TTS (Google Cloud)
-3. 모션 레퍼런스 매칭 (emotion 태그 기반)
-4. Kling 2.6 Motion Control → Sync Lipsync v2
-5. 오디오 믹싱 → 스티칭
-
-**인스타 재창조** (`/content-pipeline` → 콘텐츠 생성 → Talking Head → Copy)
-1. Instagram 영상 다운로드
-2. 오디오 분리 (Demucs) → STT (Whisper) → 청킹
-3. 영상 분석 (표정, 동작, BGM)
-4. 캐릭터 선택/생성 → 번역 → TTS
-5. Kling 2.6 Motion Control (원본 영상이 모션 소스)
-6. Sync Lipsync v2 → 오디오 믹싱 → 스티칭
-
-## API 키 설정
-
-`.env` 파일에 추가:
 ```
-FAL_KEY=your_fal_ai_key
+[Instagram URL]
+     │
+     ▼
+download.py ──► audio_separation.py ──► stt.py
+     │                                    │
+     ▼                                    ▼
+  [video]                           chunking.py
+                                        │
+                                        ▼
+                                   analysis.py ──► translation.py
+                                                       │
+                                                       ▼
+[사용자 입력] ──► script_gen.py ──────────────────► voice.py (TTS)
+                      │                                │
+                      ▼                                ▼
+               persona.py ──► video_gen.py ◄──── [voice WAV]
+                                   │
+                    ┌──────────────┼──────────────┐
+                    ▼              ▼              ▼
+            image_gen.py    Grok/Kling26    Sync Lipsync
+            (NR only)       + motion_refs     (TH only)
+                    │              │              │
+                    ▼              ▼              ▼
+              narration_stitch.py    stitching.py
+                    │                     │
+                    ▼                     ▼
+              subtitles.py ──► titles.py
+                                   │
+                                   ▼
+                              [final.mp4]
 ```
 
-Google Cloud TTS는 별도 인증:
-```bash
-gcloud auth application-default login
-```
+---
 
 ## 새 콘텐츠 타입 추가
 
 1. `workflow.json`의 `content_types`에 키 추가
-2. `prompts/{type}/` 폴더에 프롬프트 작성
-3. `/content-pipeline` 라우터에 옵션 추가
+2. `prompts/{type}/` 폴더에 create.md, copy.md + phase 파일 작성
+3. `.claude/commands/content-pipeline.md` 메뉴에 옵션 추가
+4. 필요한 `src/` 모듈 추가 (기존 모듈 최대 재사용)
 
 ## License
 

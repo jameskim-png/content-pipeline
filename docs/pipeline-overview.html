@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Pipeline Overview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0a0a0f;
+    color: #e0e0e8;
+    line-height: 1.6;
+    padding: 40px 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #7c3aed, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    text-align: center;
+    color: #888;
+    font-size: 14px;
+    margin-bottom: 48px;
+  }
+
+  /* Content Type Cards */
+  .types {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 48px;
+  }
+  @media (max-width: 900px) { .types { grid-template-columns: 1fr; } }
+
+  .type-card {
+    border: 1px solid #222;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #111118;
+  }
+  .type-header {
+    padding: 24px 28px 16px;
+    border-bottom: 1px solid #222;
+  }
+  .type-header h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .type-header .desc {
+    color: #888;
+    font-size: 13px;
+  }
+  .type-header .tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-top: 8px;
+    font-weight: 600;
+  }
+  .tag-th { background: #7c3aed22; color: #a78bfa; border: 1px solid #7c3aed44; }
+  .tag-nr { background: #06b6d422; color: #67e8f9; border: 1px solid #06b6d444; }
+
+  .type-body { padding: 20px 28px 28px; }
+
+  /* Mode tabs */
+  .modes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .mode {
+    background: #1a1a24;
+    border: 1px solid #2a2a3a;
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .mode-title {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  .mode-title .icon { margin-right: 4px; }
+  .mode-desc {
+    font-size: 11px;
+    color: #888;
+    line-height: 1.5;
+  }
+  .cost {
+    font-size: 11px;
+    color: #4ade80;
+    margin-top: 6px;
+    font-weight: 600;
+  }
+
+  /* Pipeline Flow */
+  .section-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    padding-left: 12px;
+    border-left: 3px solid #7c3aed;
+  }
+
+  .pipeline {
+    background: #111118;
+    border: 1px solid #222;
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 32px;
+    overflow-x: auto;
+  }
+  .pipeline h3 {
+    font-size: 16px;
+    margin-bottom: 20px;
+    color: #ccc;
+  }
+
+  .flow {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    min-width: 800px;
+    padding-bottom: 8px;
+  }
+
+  .step {
+    flex: 0 0 auto;
+    text-align: center;
+    position: relative;
+  }
+  .step-box {
+    width: 120px;
+    padding: 12px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+    position: relative;
+  }
+  .step-sub {
+    font-size: 9px;
+    font-weight: 400;
+    color: #888;
+    margin-top: 4px;
+    line-height: 1.3;
+  }
+
+  /* Step colors by category */
+  .step-input .step-box { background: #1e293b; border: 1px solid #334155; color: #94a3b8; }
+  .step-analysis .step-box { background: #1e1b2e; border: 1px solid #3b2d6b; color: #a78bfa; }
+  .step-audio .step-box { background: #1a2e1a; border: 1px solid #2d6b2d; color: #86efac; }
+  .step-image .step-box { background: #2e1a2a; border: 1px solid #6b2d5a; color: #f0abfc; }
+  .step-video .step-box { background: #1a1e2e; border: 1px solid #2d3d6b; color: #93c5fd; }
+  .step-post .step-box { background: #2e2a1a; border: 1px solid #6b5a2d; color: #fcd34d; }
+  .step-output .step-box { background: #0f2b1a; border: 2px solid #16a34a; color: #4ade80; }
+
+  .arrow {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    height: 60px;
+    color: #444;
+    font-size: 18px;
+    padding: 0 4px;
+  }
+
+  /* Tech Stack */
+  .stack {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  .stack-card {
+    background: #111118;
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .stack-card h4 {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stack-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+    border-bottom: 1px solid #1a1a24;
+  }
+  .stack-item:last-child { border-bottom: none; }
+  .stack-item .name { font-weight: 600; }
+  .stack-item .api {
+    font-size: 11px;
+    color: #888;
+    background: #1a1a24;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .stack-item .default {
+    font-size: 9px;
+    color: #4ade80;
+    margin-left: 4px;
+  }
+
+  /* Module Map */
+  .modules {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+    margin-bottom: 48px;
+  }
+  .mod {
+    background: #111118;
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 12px;
+  }
+  .mod .filename {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-weight: 700;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  .mod .role {
+    color: #888;
+    font-size: 11px;
+  }
+  .mod-input .filename { color: #94a3b8; }
+  .mod-analysis .filename { color: #a78bfa; }
+  .mod-audio .filename { color: #86efac; }
+  .mod-image .filename { color: #f0abfc; }
+  .mod-video .filename { color: #93c5fd; }
+  .mod-post .filename { color: #fcd34d; }
+  .mod-core .filename { color: #fb923c; }
+
+  /* Languages */
+  .langs {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 48px;
+  }
+  .lang {
+    background: #111118;
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 12px 20px;
+    text-align: center;
+    min-width: 100px;
+  }
+  .lang .flag { font-size: 24px; margin-bottom: 4px; }
+  .lang .name { font-size: 13px; font-weight: 600; }
+  .lang .code { font-size: 11px; color: #888; }
+
+  /* Cost Table */
+  .cost-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 48px;
+  }
+  .cost-table th {
+    text-align: left;
+    padding: 10px 16px;
+    background: #1a1a24;
+    font-weight: 600;
+    font-size: 12px;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .cost-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid #1a1a24;
+  }
+  .cost-table tr:hover td { background: #111118; }
+  .cost-total { color: #4ade80; font-weight: 700; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    color: #444;
+    font-size: 12px;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid #1a1a24;
+  }
+</style>
+</head>
+<body>
+
+<h1>Content Pipeline</h1>
+<p class="subtitle">AI 콘텐츠 생성 파이프라인 &mdash; Claude Code 기반 &mdash; /content-pipeline</p>
+
+<!-- Content Types -->
+<div class="types">
+  <!-- Talking Head -->
+  <div class="type-card">
+    <div class="type-header">
+      <h2>Talking Head</h2>
+      <div class="desc">AI 캐릭터가 카메라를 보고 말하는 영상. 립싱크 포함.</div>
+      <span class="tag tag-th">Grok + Sync Lipsync</span>
+    </div>
+    <div class="type-body">
+      <div class="modes">
+        <div class="mode">
+          <div class="mode-title"><span class="icon">+</span> Create</div>
+          <div class="mode-desc">제목/스크립트로 처음부터 생성. 캐릭터 선택 후 영상 제작.</div>
+          <div class="cost">~$2.10 / 30초</div>
+        </div>
+        <div class="mode">
+          <div class="mode-title"><span class="icon">&#x21bb;</span> Copy</div>
+          <div class="mode-desc">Instagram 영상을 AI 캐릭터로 재창조. 원본 BGM 유지.</div>
+          <div class="cost">~$2.15 / 30초</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Narration Reel -->
+  <div class="type-card">
+    <div class="type-header">
+      <h2>Narration Reel</h2>
+      <div class="desc">씬마다 AI 이미지 생성 + 애니메이션 + 나레이션 보이스오버.</div>
+      <span class="tag tag-nr">Flux + Grok (No Lip Sync)</span>
+    </div>
+    <div class="type-body">
+      <div class="modes">
+        <div class="mode">
+          <div class="mode-title"><span class="icon">+</span> Create</div>
+          <div class="mode-desc">주제 + 시각 스타일 선택. 씬별 이미지 + 나레이션 자동 생성.</div>
+          <div class="cost">~$1.80 / 30초</div>
+        </div>
+        <div class="mode">
+          <div class="mode-title"><span class="icon">&#x21bb;</span> Copy</div>
+          <div class="mode-desc">Instagram 영상 분석 후 같은 주제로 AI 장면 재창조.</div>
+          <div class="cost">~$2.00 / 30초</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pipeline Flows -->
+<div class="section-title">Pipeline Flows</div>
+
+<!-- TH Create -->
+<div class="pipeline">
+  <h3>Talking Head &mdash; Create (오리지널)</h3>
+  <div class="flow">
+    <div class="step step-input"><div class="step-box">제목/스크립트<div class="step-sub">사용자 입력</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-input"><div class="step-box">캐릭터 선택<div class="step-sub">persona.py</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-analysis"><div class="step-box">스크립트 생성<div class="step-sub">script_gen.py<br>+ 청크 분할</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-analysis"><div class="step-box">검증 + 승인<div class="step-sub">review.py<br>비용 견적</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-audio"><div class="step-box">TTS<div class="step-sub">Google Chirp3-HD<br>voice.py</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-video"><div class="step-box">Grok Video<div class="step-sub">video_gen.py<br>청크별 영상</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-video"><div class="step-box">Sync Lipsync<div class="step-sub">video_gen.py<br>립싱크 합성</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-post"><div class="step-box">어셈블리<div class="step-sub">stitching.py<br>자막 + 타이틀</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-output"><div class="step-box">final.mp4<div class="step-sub">720x1280<br>9:16</div></div></div>
+  </div>
+</div>
+
+<!-- TH Copy -->
+<div class="pipeline">
+  <h3>Talking Head &mdash; Copy (인스타 재창조)</h3>
+  <div class="flow">
+    <div class="step step-input"><div class="step-box">Instagram URL<div class="step-sub">download.py</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-analysis"><div class="step-box">Demucs 분리<div class="step-sub">audio_separation<br>vocals + BGM</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-analysis"><div class="step-box">Whisper STT<div class="step-sub">stt.py<br>+ chunking.py</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-analysis"><div class="step-box">번역<div class="step-sub">translation.py</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-audio"><div class="step-box">TTS<div class="step-sub">Google Chirp3-HD</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-video"><div class="step-box">Grok + Lipsync<div class="step-sub">video_gen.py</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-post"><div class="step-box">BGM 믹스<div class="step-sub">audio_mixing.py<br>+ stitching.py</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-output"><div class="step-box">final.mp4</div></div>
+  </div>
+</div>
+
+<!-- NR Create -->
+<div class="pipeline">
+  <h3>Narration Reel &mdash; Create (오리지널)</h3>
+  <div class="flow">
+    <div class="step step-input"><div class="step-box">주제 + 스타일<div class="step-sub">사용자 입력</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-analysis"><div class="step-box">스크립트 생성<div class="step-sub">나레이션 + 씬설명<br>+ animation_prompt</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-audio"><div class="step-box">TTS<div class="step-sub">Google Chirp3-HD</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-image"><div class="step-box">Flux 이미지<div class="step-sub">image_gen.py<br>씬당 1장</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-video"><div class="step-box">Grok 애니메이션<div class="step-sub">video_gen.py<br>무음 클립</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-post"><div class="step-box">싱크 어셈블리<div class="step-sub">narration_stitch<br>adelay + amix</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-post"><div class="step-box">자막 + 타이틀<div class="step-sub">subtitles.py<br>titles.py</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-output"><div class="step-box">final.mp4</div></div>
+  </div>
+</div>
+
+<!-- NR Copy -->
+<div class="pipeline">
+  <h3>Narration Reel &mdash; Copy (인스타 재창조)</h3>
+  <div class="flow">
+    <div class="step step-input"><div class="step-box">Instagram URL<div class="step-sub">download.py</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-analysis"><div class="step-box">분석<div class="step-sub">Demucs + STT<br>or 프레임 비전</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-analysis"><div class="step-box">재창조 스크립트<div class="step-sub">씬 설명 생성<br>번역 (필요시)</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-audio"><div class="step-box">TTS<div class="step-sub">Google Chirp3-HD</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-image"><div class="step-box">Flux 이미지<div class="step-sub">image_gen.py</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-video"><div class="step-box">Grok 애니메이션<div class="step-sub">video_gen.py</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-post"><div class="step-box">어셈블리<div class="step-sub">narration_stitch<br>자막 + 타이틀</div></div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="step step-output"><div class="step-box">final.mp4</div></div>
+  </div>
+</div>
+
+<!-- Tech Stack -->
+<div class="section-title">Tech Stack</div>
+<div class="stack">
+  <div class="stack-card">
+    <h4>Video Generation</h4>
+    <div class="stack-item"><span class="name">Grok Imagine Video<span class="default">DEFAULT</span></span><span class="api">fal.ai</span></div>
+    <div class="stack-item"><span class="name">Sync Lipsync v2<span class="default">DEFAULT</span></span><span class="api">fal.ai</span></div>
+    <div class="stack-item"><span class="name">Flux 1.1 Pro</span><span class="api">fal.ai</span></div>
+    <div class="stack-item"><span class="name">Kling 2.6 Motion Ctrl</span><span class="api">fal.ai</span></div>
+    <div class="stack-item"><span class="name">VEO 3</span><span class="api">fal.ai</span></div>
+    <div class="stack-item"><span class="name">HeyGen</span><span class="api">HeyGen</span></div>
+  </div>
+  <div class="stack-card">
+    <h4>Voice & Audio</h4>
+    <div class="stack-item"><span class="name">Google Chirp3-HD<span class="default">DEFAULT</span></span><span class="api">Google Cloud</span></div>
+    <div class="stack-item"><span class="name">ElevenLabs</span><span class="api">ElevenLabs</span></div>
+    <div class="stack-item"><span class="name">F5-TTS</span><span class="api">fal.ai</span></div>
+    <div class="stack-item"><span class="name">Demucs</span><span class="api">Local</span></div>
+    <div class="stack-item"><span class="name">Whisper</span><span class="api">fal.ai</span></div>
+  </div>
+  <div class="stack-card">
+    <h4>Post-Production</h4>
+    <div class="stack-item"><span class="name">ffmpeg</span><span class="api">Local</span></div>
+    <div class="stack-item"><span class="name">ASS Subtitles</span><span class="api">ffmpeg</span></div>
+    <div class="stack-item"><span class="name">drawtext Titles</span><span class="api">ffmpeg</span></div>
+    <div class="stack-item"><span class="name">loudnorm (LUFS -14)</span><span class="api">ffmpeg</span></div>
+    <div class="stack-item"><span class="name">xfade Crossfade</span><span class="api">ffmpeg</span></div>
+  </div>
+</div>
+
+<!-- Languages -->
+<div class="section-title">Supported Languages</div>
+<div class="langs">
+  <div class="lang"><div class="flag">&#127472;&#127479;</div><div class="name">Korean</div><div class="code">ko-KR-Chirp3-HD-Leda</div></div>
+  <div class="lang"><div class="flag">&#127471;&#127477;</div><div class="name">Japanese</div><div class="code">ja-JP-Chirp3-HD-Leda</div></div>
+  <div class="lang"><div class="flag">&#127482;&#127480;</div><div class="name">English</div><div class="code">en-US-Chirp3-HD-Leda</div></div>
+  <div class="lang"><div class="flag">&#127464;&#127475;</div><div class="name">Chinese</div><div class="code">cmn-CN-Chirp3-HD-Leda</div></div>
+  <div class="lang"><div class="flag">&#127466;&#127480;</div><div class="name">Spanish</div><div class="code">es-ES-Chirp3-HD-Leda</div></div>
+</div>
+
+<!-- Cost -->
+<div class="section-title">Cost Breakdown (30s, 5 chunks)</div>
+<table class="cost-table">
+  <tr>
+    <th>Item</th>
+    <th>Talking Head Create</th>
+    <th>Talking Head Copy</th>
+    <th>Narration Reel Create</th>
+    <th>Narration Reel Copy</th>
+  </tr>
+  <tr>
+    <td>STT (Whisper)</td>
+    <td>-</td>
+    <td>$0.015</td>
+    <td>-</td>
+    <td>$0.015</td>
+  </tr>
+  <tr>
+    <td>TTS (Google)</td>
+    <td>$0.025</td>
+    <td>$0.025</td>
+    <td>$0.025</td>
+    <td>$0.025</td>
+  </tr>
+  <tr>
+    <td>Image (Flux / Ref)</td>
+    <td>$0.04</td>
+    <td>$0.04</td>
+    <td>$0.30</td>
+    <td>$0.30</td>
+  </tr>
+  <tr>
+    <td>Video (Grok)</td>
+    <td>$1.50</td>
+    <td>$1.50</td>
+    <td>$1.50</td>
+    <td>$1.50</td>
+  </tr>
+  <tr>
+    <td>Lip Sync (Sync v2)</td>
+    <td>$0.50</td>
+    <td>$0.50</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td class="cost-total">Total</td>
+    <td class="cost-total">~$2.10</td>
+    <td class="cost-total">~$2.08</td>
+    <td class="cost-total">~$1.83</td>
+    <td class="cost-total">~$1.84</td>
+  </tr>
+</table>
+
+<!-- Source Modules -->
+<div class="section-title">Source Modules (src/)</div>
+<div class="modules">
+  <div class="mod mod-core"><div class="filename">config.py</div><div class="role">API 키, 비용 추정, 설정</div></div>
+  <div class="mod mod-core"><div class="filename">utils.py</div><div class="role">JSON, ffmpeg 유틸리티</div></div>
+  <div class="mod mod-core"><div class="filename">languages.py</div><div class="role">언어 설정, TTS 음성 매핑</div></div>
+  <div class="mod mod-input"><div class="filename">persona.py</div><div class="role">캐릭터 생성/관리</div></div>
+  <div class="mod mod-input"><div class="filename">download.py</div><div class="role">Instagram 다운로드</div></div>
+  <div class="mod mod-analysis"><div class="filename">audio_separation.py</div><div class="role">Demucs 4-stem 분리</div></div>
+  <div class="mod mod-analysis"><div class="filename">stt.py</div><div class="role">Whisper STT</div></div>
+  <div class="mod mod-analysis"><div class="filename">chunking.py</div><div class="role">VAD + 씬 감지 청킹</div></div>
+  <div class="mod mod-analysis"><div class="filename">analysis.py</div><div class="role">영상 분석 프롬프트</div></div>
+  <div class="mod mod-analysis"><div class="filename">script_gen.py</div><div class="role">스크립트 생성 + 검증</div></div>
+  <div class="mod mod-analysis"><div class="filename">translation.py</div><div class="role">번역 프롬프트</div></div>
+  <div class="mod mod-analysis"><div class="filename">review.py</div><div class="role">프리-제너레이션 검증</div></div>
+  <div class="mod mod-audio"><div class="filename">voice.py</div><div class="role">TTS (Google/EL/fal)</div></div>
+  <div class="mod mod-audio"><div class="filename">audio_mixing.py</div><div class="role">오디오 믹싱, LUFS</div></div>
+  <div class="mod mod-image"><div class="filename">image_gen.py</div><div class="role">Flux 씬 이미지 생성</div></div>
+  <div class="mod mod-video"><div class="filename">video_gen.py</div><div class="role">Grok/Kling/VEO/HeyGen</div></div>
+  <div class="mod mod-video"><div class="filename">motion_refs.py</div><div class="role">모션 레퍼런스 (Kling26)</div></div>
+  <div class="mod mod-post"><div class="filename">stitching.py</div><div class="role">TH 어셈블리</div></div>
+  <div class="mod mod-post"><div class="filename">narration_stitch.py</div><div class="role">NR 싱크 어셈블리</div></div>
+  <div class="mod mod-post"><div class="filename">subtitles.py</div><div class="role">SRT/ASS 자막 + 번인</div></div>
+  <div class="mod mod-post"><div class="filename">subtitle_styles.py</div><div class="role">자막 스타일 라이브러리</div></div>
+  <div class="mod mod-post"><div class="filename">titles.py</div><div class="role">타이틀 오버레이</div></div>
+</div>
+
+<div class="footer">
+  content-pipeline &mdash; Claude Code 기반 AI 콘텐츠 생성
+</div>
+
+</body>
+</html>
