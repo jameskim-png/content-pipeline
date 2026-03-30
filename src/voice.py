@@ -129,11 +129,13 @@ def generate_chunk_voices(
     voice_id: str | None = None,
     voice_name: str | None = None,
     ref_audio_path: Path | None = None,
+    speaking_rate: float = 1.0,
 ) -> list[dict]:
     """Generate voice for all translated chunks.
 
     tts_engine: "google", "elevenlabs", "fal" (default).
     For backward compat, use_elevenlabs=True overrides tts_engine to "elevenlabs".
+    speaking_rate: TTS speed multiplier (1.0=normal, 1.2=20% faster). Google TTS only.
     Returns list of dicts with chunk_id, voice_path, text, and actual_duration.
     Skips chunks whose output file already exists and has size > 0.
     """
@@ -157,6 +159,8 @@ def generate_chunk_voices(
                 kwargs = {}
                 if voice_name:
                     kwargs["voice_name"] = voice_name
+                if speaking_rate != 1.0:
+                    kwargs["speaking_rate"] = speaking_rate
                 generate_voice_google(text, output_path, **kwargs)
             elif tts_engine == "elevenlabs" and voice_id:
                 generate_voice_elevenlabs(text, output_path, voice_id=voice_id)

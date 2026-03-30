@@ -60,10 +60,10 @@ def stitch_chunks(
         )
         normalized_chunks.append(norm_path)
 
-    # Write concat list
+    # Write concat list (absolute paths to avoid relative path resolution issues)
     with open(concat_file, "w") as f:
         for path in normalized_chunks:
-            f.write(f"file '{path}'\n")
+            f.write(f"file '{path.resolve()}'\n")
 
     # Concat with ffmpeg
     cmd = [

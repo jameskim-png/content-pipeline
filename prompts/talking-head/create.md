@@ -210,6 +210,19 @@ BGM을 포함할까요? (기본: 없음)
 파일 경로를 입력하면 사용합니다.
 ```
 
+### Q4.5. 말하기 속도
+
+```
+말하기 속도를 선택해주세요:
+
+1. 보통 (1.0x, 기본)
+2. 약간 빠르게 (1.15x)
+3. 빠르게 (1.25x)
+4. 직접 입력 (0.5~2.0)
+```
+
+→ `SPEAKING_RATE` 변수 설정 (기본: 1.0)
+
 ### Q5. 영상 모델 선택
 
 ```
@@ -513,6 +526,7 @@ results = generate_chunk_voices(
     output_dir=audio_dir,
     tts_engine='google',
     voice_name='{VOICE_NAME}',
+    speaking_rate={SPEAKING_RATE},
 )
 for r in results:
     print(f\"  {r['chunk_id']}: {r['actual_duration']:.2f}s\")
@@ -573,7 +587,7 @@ persona_spec = {PERSONA_SPEC_JSON}
 script = load_script(Path('{OUTPUT_DIR}'))
 
 chunk_videos = []
-for chunk in script['chunks']:
+for idx, chunk in enumerate(script['chunks']):
     chunk_id = chunk['chunk_id']
     audio_path = Path('{OUTPUT_DIR}/audio/{cid}_voice.wav'.format(cid=chunk_id))
     output = Path('{OUTPUT_DIR}/chunks/{cid}_video.mp4'.format(cid=chunk_id))
@@ -587,6 +601,7 @@ for chunk in script['chunks']:
         persona_spec=persona_spec,
         chunk_text=chunk.get('text', ''),
         emotion=chunk.get('emotion', ''),
+        chunk_index=idx,
     )
     chunk_videos.append({'chunk_id': chunk_id, 'video_path': str(output)})
     print(f'  {chunk_id} done')

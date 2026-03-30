@@ -359,11 +359,15 @@ def _build_grok_prompt(
     chunk_text: str,
     persona_spec: dict | None = None,
     emotion: str = "neutral",
+    chunk_index: int = 0,
 ) -> str:
     """Build video generation prompt for Grok Imagine Video.
 
     Korean prompt: character appearance + framing + mood + emotion cue + speech text.
     Stays within Grok's 4096-char prompt limit.
+
+    chunk_index: alternates framing between close-up (even) and medium shot (odd)
+    for natural "punch-in cut" transitions between chunks.
     """
     parts = []
 
@@ -385,8 +389,12 @@ def _build_grok_prompt(
         if appearance:
             parts.append(f"Character: {', '.join(appearance)}")
 
-    # Framing
-    parts.append("Close-up upper body shot, talking to camera, 9:16 vertical framing, static camera, fixed framing, no zoom, no pan, no camera movement")
+    # Alternating framing: close-up (even chunks) vs medium shot (odd chunks)
+    if chunk_index % 2 == 0:
+        framing = "Close-up upper body shot, shoulders and head visible, talking to camera"
+    else:
+        framing = "Medium shot, waist-up framing, talking to camera, more background visible"
+    parts.append(f"{framing}, 9:16 vertical framing, static camera, fixed framing, no zoom, no pan, no camera movement")
 
     # Mood from vibe
     if persona_spec:
@@ -662,11 +670,13 @@ def generate_chunk_video(
     persona_spec: dict | None = None,
     chunk_text: str | None = None,
     emotion: str | None = None,
+    chunk_index: int = 0,
 ) -> Path:
     """Dispatch video generation to the selected model.
 
     model: "heygen", "kling_avatar", "kling3", "kling26", "grok", "veo3"
     Skips generation if output already exists and is valid.
+    chunk_index: used for alternating framing (close-up/medium shot).
     For kling26: uses reference image (already has background baked in) + source video for motion.
     For other non-heygen models: composites face onto background if provided.
     persona_spec: character traits for dynamic prompt generation.
@@ -724,7 +734,7 @@ def generate_chunk_video(
 
     elif model == "grok":
         # Grok Imagine Video → Sync Lipsync v2
-        grok_prompt = _build_grok_prompt(chunk_text or "", persona_spec, emotion or "neutral")
+        grok_prompt = _build_grok_prompt(chunk_text or "", persona_spec, emotion or "neutral", chunk_index=chunk_index)
         grok_duration = max(1, min(15, int(get_audio_duration(audio_path)) + 1))
         raw_video = output_path.with_suffix(".raw.mp4")
         if not _is_raw_video_fresh(raw_video, audio_path):
