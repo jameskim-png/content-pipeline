@@ -9,7 +9,7 @@ import requests
 import fal_client
 
 from .config import get_api_key, ensure_dirs
-from .utils import save_json
+from .utils import save_json, get_audio_duration
 from .persona import composite_face_on_background
 
 
@@ -316,6 +316,104 @@ def veo3_generate(
     return output_path
 
 
+# --- Grok Imagine Video (fal.ai) ---
+
+def grok_image_to_video(
+    reference_image_path: Path,
+    prompt: str,
+    output_path: Path,
+    duration: int = 6,
+    resolution: str = "720p",
+) -> Path:
+    """Generate video using Grok Imagine Video (image-to-video) via fal.ai.
+
+    duration: 1-15 seconds.
+    resolution: "720p" or "1080p".
+    """
+    get_api_key("FAL_KEY")
+    ensure_dirs(output_path.parent)
+
+    image_url = fal_client.upload_file(reference_image_path)
+
+    result = fal_client.subscribe(
+        "xai/grok-imagine-video/image-to-video",
+        arguments={
+            "image_url": image_url,
+            "prompt": prompt,
+            "duration": duration,
+            "resolution": resolution,
+        },
+    )
+
+    video_url = result.get("video", {}).get("url", "")
+    if not video_url:
+        raise RuntimeError(
+            f"Grok returned no video URL. Prompt: {prompt[:100]}"
+        )
+
+    _download_file(video_url, output_path)
+    return output_path
+
+
+def _build_grok_prompt(
+    chunk_text: str,
+    persona_spec: dict | None = None,
+    emotion: str = "neutral",
+) -> str:
+    """Build video generation prompt for Grok Imagine Video.
+
+    Korean prompt: character appearance + framing + mood + emotion cue + speech text.
+    Stays within Grok's 4096-char prompt limit.
+    """
+    parts = []
+
+    # Character appearance from persona_spec
+    if persona_spec:
+        appearance = []
+        if persona_spec.get("gender"):
+            appearance.append(persona_spec["gender"])
+        if persona_spec.get("age_range"):
+            appearance.append(persona_spec["age_range"])
+        if persona_spec.get("ethnicity"):
+            appearance.append(persona_spec["ethnicity"])
+        if persona_spec.get("visual_traits"):
+            appearance.append(persona_spec["visual_traits"])
+        if persona_spec.get("hair"):
+            appearance.append(f"Hair: {persona_spec['hair']}")
+        if persona_spec.get("clothing"):
+            appearance.append(f"Wearing: {persona_spec['clothing']}")
+        if appearance:
+            parts.append(f"Character: {', '.join(appearance)}")
+
+    # Framing
+    parts.append("Close-up upper body shot, talking to camera, 9:16 vertical framing, static camera, fixed framing, no zoom, no pan, no camera movement")
+
+    # Mood from vibe
+    if persona_spec:
+        vibe = persona_spec.get("vibe", "")
+        if vibe:
+            vibe_en = _vibe_to_english(vibe)
+            if vibe_en:
+                parts.append(f"Mood: {vibe_en}")
+
+    # Emotion cue — use shared delivery inference (respects persona vibe)
+    vibe = persona_spec.get("vibe", "") if persona_spec else ""
+    cue = _infer_delivery_from_text(chunk_text, emotion, vibe)
+    parts.append(cue)
+
+    # Speech content as context
+    if chunk_text:
+        # Truncate to keep within prompt limit
+        text_hint = chunk_text[:200]
+        parts.append(f'Speaking: "{text_hint}"')
+
+    prompt = ", ".join(parts)
+    # Enforce Grok 4096-char limit
+    if len(prompt) > 4000:
+        prompt = prompt[:4000]
+    return prompt
+
+
 # --- Helpers ---
 
 def _is_valid_video(path: Path) -> bool:
@@ -323,20 +421,92 @@ def _is_valid_video(path: Path) -> bool:
     if not path.exists() or path.stat().st_size == 0:
         return False
     try:
-        cmd = [
-            "ffprobe", "-v", "quiet", "-print_format", "json",
-            "-show_format", str(path)
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        probe = json.loads(result.stdout)
-        duration = float(probe.get("format", {}).get("duration", 0))
-        return duration > 0
+        return _get_video_duration(path) > 0
     except Exception:
         return False
 
 
-def _build_enhanced_prompt(base_prompt: str, chunk_analysis: dict | None = None) -> str:
-    """Enhance video generation prompt with chunk analysis data."""
+def _get_video_duration(path: Path) -> float:
+    """Get video duration in seconds via ffprobe."""
+    cmd = [
+        "ffprobe", "-v", "quiet", "-print_format", "json",
+        "-show_format", str(path)
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    probe = json.loads(result.stdout)
+    return float(probe.get("format", {}).get("duration", 0))
+
+
+def _is_video_fresh(video_path: Path, audio_path: Path, tolerance: float = 0.5) -> bool:
+    """Check if cached video is valid AND matches the current audio.
+
+    Detects stale videos from previous runs by checking:
+    1. Video is valid (exists, has duration)
+    2. Video was created after the audio (mtime)
+    3. Video duration roughly matches audio duration
+    """
+    if not _is_valid_video(video_path):
+        return False
+    if not audio_path.exists():
+        return False
+    try:
+        # mtime check: video should be newer than audio
+        if video_path.stat().st_mtime < audio_path.stat().st_mtime:
+            return False
+        # Duration match check
+        video_dur = _get_video_duration(video_path)
+        audio_dur = get_audio_duration(audio_path)
+        return abs(video_dur - audio_dur) <= tolerance
+    except Exception:
+        return False
+
+
+def _is_raw_video_fresh(raw_video_path: Path, audio_path: Path) -> bool:
+    """Check if a raw (pre-lipsync) video is valid and newer than audio.
+
+    Raw videos don't need duration matching (lipsync adjusts timing),
+    but must be newer than the audio to avoid stale reuse.
+    """
+    if not _is_valid_video(raw_video_path):
+        return False
+    if not audio_path.exists():
+        return False
+    return raw_video_path.stat().st_mtime >= audio_path.stat().st_mtime
+
+
+def _build_enhanced_prompt(
+    base_prompt: str,
+    chunk_analysis: dict | None = None,
+    persona_spec: dict | None = None,
+    chunk_text: str | None = None,
+    emotion: str | None = None,
+) -> str:
+    """Enhance video generation prompt with persona traits, script content, and chunk analysis.
+
+    Priority: persona_spec + chunk_text > chunk_analysis > base_prompt fallback.
+    """
+    # If persona_spec is provided, build a character-aware prompt
+    if persona_spec:
+        parts = []
+
+        # Character description — always in English for best Kling results
+        parts.append("Person talking to camera, chest-up close shot, 9:16 vertical framing")
+
+        # Mood from vibe (translated to English-friendly descriptors)
+        vibe = persona_spec.get("vibe", "")
+        if vibe:
+            vibe_en = _vibe_to_english(vibe)
+            if vibe_en:
+                parts.append(vibe_en)
+
+        # Script content → action/delivery cue
+        if chunk_text:
+            delivery = _infer_delivery_from_text(chunk_text, emotion or "neutral", vibe)
+            parts.append(delivery)
+
+        return ", ".join(parts)
+
+    # Fallback: original chunk_analysis logic
     if not chunk_analysis:
         return base_prompt
 
@@ -357,6 +527,126 @@ def _build_enhanced_prompt(base_prompt: str, chunk_analysis: dict | None = None)
     return ". ".join(parts)
 
 
+def _vibe_to_english(vibe: str) -> str:
+    """Convert Korean vibe keywords to English descriptors for Kling prompts."""
+    # Ordered longest-first to avoid substring conflicts (미니멀리즘 before 미니멀)
+    translations = [
+        ("미니멀리즘", "minimalist"),
+        ("무표정", "expressionless"),
+        ("차가운 블루 톤", "cold blue-toned lighting"),
+        ("차가운", "cold"),
+        ("블루 톤", "blue-toned lighting"),
+        ("냉정", "stoic"),
+        ("감성", "emotional"),
+        ("귀여운", "cute"),
+        ("현실적", "realistic"),
+        ("지나친 진지함", "overly serious"),
+        ("광기", "manic intensity"),
+        ("기발함", "quirky"),
+        ("기괴한", "bizarre"),
+        ("비비드", "vivid"),
+        ("Y2K", "Y2K retro"),
+    ]
+    parts = []
+    remaining = vibe
+    for ko, en in translations:
+        if ko in remaining:
+            parts.append(en)
+            remaining = remaining.replace(ko, "", 1)
+    return ", ".join(parts) if parts else ""
+
+
+def _infer_delivery_from_text(text: str, emotion: str, vibe: str) -> str:
+    """Infer a short video delivery cue from script text + emotion + character vibe.
+
+    Returns a concise English phrase describing how the character should deliver.
+    """
+    vibe_lower = vibe.lower() if vibe else ""
+
+    # Detect restrained character
+    is_restrained = any(kw in vibe_lower for kw in [
+        "무표정", "미니멀", "차가운", "냉정", "로봇", "ai", "감정 없",
+    ])
+
+    # Text content analysis (Korean) — prioritize most specific cue
+    ends_with_question = text.rstrip().endswith("?")
+    has_hesitation = "어..." in text or "..." in text or "음..." in text
+    has_strong_command = any(kw in text for kw in ["켜", "뒤집어", "하면 안 돼", "절대"])
+    is_listing = ("분." in text or "초." in text) and text.count(".") >= 3
+    has_reaction = any(kw in text for kw in ["무섭다", "화나네", "맞는 말", "너무한"])
+    is_short = len(text) < 30
+    is_cta = any(kw in text for kw in ["댓글", "링크", "구독", "좋아요"])
+
+    if is_restrained:
+        # Restrained character: always controlled, but with subtle variations per content
+        if has_hesitation:
+            return "brief composed pause, slight eye shift, controlled stillness"
+        elif has_strong_command:
+            return "controlled intensity, slight lean forward, unwavering gaze"
+        elif is_listing:
+            return "methodical pacing, minimal gestures, steady measured composure"
+        elif has_reaction and is_short:
+            return "micro-expression shift, brief eye contact break, quick recovery to neutral"
+        elif is_cta:
+            return "direct steady gaze, slight forward lean, purposeful delivery"
+        elif ends_with_question:
+            return "subtle head tilt, piercing gaze, deliberate pause"
+        else:
+            return "calm measured delivery, minimal expression, slight natural movement"
+    else:
+        # Expressive character: emotion-driven delivery
+        delivery_map = {
+            "excited": "animated gestures, wide eyes, energetic movement",
+            "emphatic": "strong nodding, decisive gestures, firm expression",
+            "surprised": "eyes widening, slight backward movement, raised eyebrows",
+            "thinking": "looking slightly up, contemplative pause, hand near face",
+            "happy": "warm smile, gentle nodding, bright expression",
+            "calm": "relaxed posture, slow gentle movements, steady gaze",
+            "neutral": "composed, minimal movement, steady eye contact",
+            "sad": "looking slightly down, slow movements, reflective mood",
+            "playful": "mischievous expression, head tilts, light movement",
+            "explaining": "hand gestures while talking, steady eye contact",
+        }
+        return delivery_map.get(emotion, "natural movement, talking to camera")
+
+
+# --- Narration Reel: Scene Video ---
+
+def generate_scene_video(
+    image_path: Path,
+    prompt: str,
+    output_path: Path,
+    duration: int = 5,
+    resolution: str = "720p",
+) -> Path:
+    """Generate an animated video clip from a scene image.
+
+    Uses Grok Imagine Video directly (no lip sync).
+    For Narration Reel pipeline where each scene is a separate image.
+
+    Args:
+        image_path: Path to the scene image (from Flux).
+        prompt: Animation prompt (camera movement, motion description).
+        output_path: Where to save the generated clip.
+        duration: Clip duration in seconds (1-15).
+        resolution: "720p" or "1080p".
+
+    Returns:
+        Path to the generated video clip (silent).
+    """
+    if _is_valid_video(output_path):
+        print(f"  {output_path.name}: already exists, skipping")
+        return output_path
+
+    return grok_image_to_video(
+        reference_image_path=image_path,
+        prompt=prompt,
+        output_path=output_path,
+        duration=duration,
+        resolution=resolution,
+    )
+
+
 # --- Dispatcher ---
 
 def generate_chunk_video(
@@ -369,28 +659,42 @@ def generate_chunk_video(
     avatar_id: str | None = None,
     chunk_analysis: dict | None = None,
     source_video_path: Path | None = None,
+    persona_spec: dict | None = None,
+    chunk_text: str | None = None,
+    emotion: str | None = None,
 ) -> Path:
     """Dispatch video generation to the selected model.
 
-    model: "heygen", "kling_avatar", "kling3", "kling26", "veo3"
+    model: "heygen", "kling_avatar", "kling3", "kling26", "grok", "veo3"
     Skips generation if output already exists and is valid.
     For kling26: uses reference image (already has background baked in) + source video for motion.
     For other non-heygen models: composites face onto background if provided.
+    persona_spec: character traits for dynamic prompt generation.
+    chunk_text: script text for context-aware motion prompts.
+    emotion: emotion tag for the chunk.
     """
-    # Skip if already generated
-    if _is_valid_video(output_path):
-        print(f"  {output_path.name}: already exists, skipping")
+    # Skip if already generated and fresh (matches current audio)
+    if _is_video_fresh(output_path, audio_path):
+        print(f"  {output_path.name}: already exists and fresh, skipping")
         return output_path
+    elif _is_valid_video(output_path):
+        print(f"  {output_path.name}: stale (duration/mtime mismatch), regenerating")
+        output_path.unlink(missing_ok=True)
 
-    # kling26 uses reference image directly (background already baked in)
+    # kling26/grok use reference image directly (background already baked in)
     # Other non-heygen models need face composited onto background
-    if model not in ("heygen", "kling26") and background_path and background_path.exists():
+    if model not in ("heygen", "kling26", "grok") and background_path and background_path.exists():
         composited = composite_face_on_background(face_image_path, background_path)
         face_image_path = composited
 
-    # Enhance prompt with chunk analysis for models that use prompts
+    # Enhance prompt: persona_spec + chunk_text take priority over chunk_analysis
     if model in ("kling3", "kling26", "veo3"):
-        prompt = _build_enhanced_prompt(prompt, chunk_analysis)
+        prompt = _build_enhanced_prompt(
+            prompt, chunk_analysis,
+            persona_spec=persona_spec,
+            chunk_text=chunk_text,
+            emotion=emotion,
+        )
 
     if model == "heygen":
         if not avatar_id:
@@ -403,7 +707,8 @@ def generate_chunk_video(
     elif model == "kling3":
         # Generate video then apply lip sync with MuseTalk
         raw_video = output_path.with_suffix(".raw.mp4")
-        if not _is_valid_video(raw_video):
+        if not _is_raw_video_fresh(raw_video, audio_path):
+            raw_video.unlink(missing_ok=True)
             kling_video_generate(face_image_path, prompt, raw_video)
         return musetalk_lip_sync(raw_video, audio_path, output_path)
 
@@ -412,8 +717,19 @@ def generate_chunk_video(
         if not source_video_path:
             raise ValueError("kling26 requires source_video_path for motion transfer.")
         raw_video = output_path.with_suffix(".raw.mp4")
-        if not _is_valid_video(raw_video):
+        if not _is_raw_video_fresh(raw_video, audio_path):
+            raw_video.unlink(missing_ok=True)
             kling26_motion_control(face_image_path, source_video_path, prompt, raw_video)
+        return sync_lipsync(raw_video, audio_path, output_path)
+
+    elif model == "grok":
+        # Grok Imagine Video → Sync Lipsync v2
+        grok_prompt = _build_grok_prompt(chunk_text or "", persona_spec, emotion or "neutral")
+        grok_duration = max(1, min(15, int(get_audio_duration(audio_path)) + 1))
+        raw_video = output_path.with_suffix(".raw.mp4")
+        if not _is_raw_video_fresh(raw_video, audio_path):
+            raw_video.unlink(missing_ok=True)
+            grok_image_to_video(face_image_path, grok_prompt, raw_video, duration=grok_duration)
         return sync_lipsync(raw_video, audio_path, output_path)
 
     elif model == "veo3":

@@ -28,7 +28,10 @@ from pathlib import Path
 voice_manifest = load_json(Path('{OUTPUT_DIR}/audio/voice_manifest.json'))
 translation = load_json(Path('{OUTPUT_DIR}/translated_script.json'))
 subtitle_chunks = recalculate_subtitle_timings(voice_manifest, translation['chunks'])
-generate_ass(subtitle_chunks, Path('{OUTPUT_DIR}/subtitles.ass'))
+
+from src.subtitle_styles import get_style, style_to_ass_params
+style_params = style_to_ass_params(get_style('{SUBTITLE_STYLE}'))
+generate_ass(subtitle_chunks, Path('{OUTPUT_DIR}/subtitles.ass'), **style_params)
 print(f'Subtitles generated with {len(subtitle_chunks)} entries')
 "
 ```
@@ -75,7 +78,7 @@ save_persona_metadata(
     {PERSONA_SPEC_JSON},
     '{BACKGROUND_DESC}',
     {'character_sheet_prompt': 'auto', 'background_prompt': 'auto'},
-    video_model='kling26',
+    video_model='{MODEL}',
     tts_engine='google',
 )
 print('Metadata saved')

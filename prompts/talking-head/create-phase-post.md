@@ -34,7 +34,10 @@ script = load_script(Path('{OUTPUT_DIR}'))
 translation = script_to_translation_format(script)
 subtitle_chunks = recalculate_subtitle_timings(voice_manifest, translation['chunks'])
 output = Path('{OUTPUT_DIR}/subtitles.ass')
-generate_ass(subtitle_chunks, output)
+
+from src.subtitle_styles import get_style, style_to_ass_params
+style_params = style_to_ass_params(get_style('{SUBTITLE_STYLE}'))
+generate_ass(subtitle_chunks, output, **style_params)
 print(f'Subtitles saved: {output} ({len(subtitle_chunks)} entries)')
 "
 ```

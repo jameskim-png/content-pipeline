@@ -27,7 +27,7 @@ SCRIPT_GENERATION_PROMPT = """다음 캐릭터로 쇼츠/릴스 스크립트를 
 3. 각 청크에 감정 태그 부여 (아래 목록에서 선택)
 4. 도입-전개-마무리 구조
 5. 릴스/쇼츠에 맞게 강한 첫 문장 (hook)
-6. 한국어 자연스러운 구어체
+6. {target_language} 자연스러운 구어체
 
 감정 태그 목록: {emotions}
 
@@ -79,10 +79,12 @@ def build_script_generation_prompt(
     persona_spec: dict,
     title: str,
     target_duration: int = 30,
+    target_language: str = "한국어",
 ) -> str:
     """Build prompt for Claude to generate a script from scratch.
 
     Uses persona voice_tone/speech_level/vibe for consistent character voice.
+    target_language: display name of the language (e.g. "한국어", "日本語", "English").
     """
     return SCRIPT_GENERATION_PROMPT.format(
         title=title,
@@ -91,6 +93,7 @@ def build_script_generation_prompt(
         voice_tone=persona_spec.get("voice_tone", "자연스러운"),
         vibe=persona_spec.get("vibe", "friendly"),
         emotions=", ".join(EMOTION_CATEGORIES),
+        target_language=target_language,
     )
 
 

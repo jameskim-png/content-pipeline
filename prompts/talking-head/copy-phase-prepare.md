@@ -52,7 +52,7 @@ results = generate_chunk_voices(
     translation=translation,
     output_dir=Path('{OUTPUT_DIR}/audio'),
     tts_engine='google',
-    voice_name='ko-KR-Chirp3-HD-Leda',
+    voice_name='{VOICE_NAME}',
 )
 for r in results:
     print(f\"  {r['chunk_id']}: {r['actual_duration']:.2f}s\")

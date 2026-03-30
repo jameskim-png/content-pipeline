@@ -41,6 +41,48 @@
           ]
         }
       }
+    },
+    "narration-reel": {
+      "name": "Narration Reel",
+      "description": "AI 생성 장면 + 나레이션 릴스/숏츠",
+      "modes": {
+        "create": {
+          "name": "오리지널 생성",
+          "prompt": "prompts/narration-reel/create.md"
+        },
+        "copy": {
+          "name": "인스타 영상 재창조",
+          "prompt": "prompts/narration-reel/copy.md"
+        }
+      },
+      "phases": {
+        "create": {
+          "cast": [
+            {"id": "context", "prompt": "prompts/narration-reel/create-phase-context.md", "description": "Environment check + style selection"},
+            {"id": "script", "prompt": "prompts/narration-reel/create-phase-script.md", "description": "Narration script + scene descriptions"},
+            {"id": "review", "prompt": "prompts/narration-reel/create-phase-review.md", "description": "Cost estimate + user approval"}
+          ],
+          "spell": [
+            {"id": "audio", "prompt": "prompts/narration-reel/create-phase-audio.md", "description": "TTS narration generation"},
+            {"id": "images", "prompt": "prompts/narration-reel/create-phase-images.md", "description": "Flux scene image generation"},
+            {"id": "video", "prompt": "prompts/narration-reel/create-phase-video.md", "description": "Grok scene animation"},
+            {"id": "post", "prompt": "prompts/narration-reel/create-phase-post.md", "description": "Assembly + subtitles + title"}
+          ]
+        },
+        "copy": {
+          "cast": [
+            {"id": "download", "prompt": "prompts/narration-reel/copy-phase-download.md", "description": "Instagram download + audio separation"},
+            {"id": "analyze", "prompt": "prompts/narration-reel/copy-phase-analyze.md", "description": "STT + scene analysis + content analysis"},
+            {"id": "plan", "prompt": "prompts/narration-reel/copy-phase-plan.md", "description": "Recreation script generation"},
+            {"id": "review", "prompt": "prompts/narration-reel/copy-phase-review.md", "description": "Cost estimate + user approval"}
+          ],
+          "spell": [
+            {"id": "prepare", "prompt": "prompts/narration-reel/copy-phase-prepare.md", "description": "Translation + TTS"},
+            {"id": "generate", "prompt": "prompts/narration-reel/copy-phase-generate.md", "description": "Image generation + animation"},
+            {"id": "post", "prompt": "prompts/narration-reel/copy-phase-post.md", "description": "Assembly + subtitles + title"}
+          ]
+        }
+      }
     }
   },
   "shared": {

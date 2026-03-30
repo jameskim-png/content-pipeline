@@ -39,7 +39,8 @@ from src.script_gen import load_script
 from pathlib import Path
 import json
 script = load_script(Path('{OUTPUT_DIR}'))
-matches = select_motion_references_for_script(script['chunks'])
+persona_spec = {PERSONA_SPEC_JSON}
+matches = select_motion_references_for_script(script['chunks'], persona_spec=persona_spec)
 print(json.dumps(matches, indent=2, ensure_ascii=False))
 "
 ```

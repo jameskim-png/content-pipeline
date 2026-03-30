@@ -33,7 +33,8 @@ else:
 - 소스: {URL} ({COUNT}개 영상)
 - 캐릭터: {PERSONA_NAME}
 - 모델: Kling 2.6 Motion Control + Sync Lipsync v2 (고정)
-- TTS: Google Cloud ko-KR-Chirp3-HD-Leda (고정)
+- TTS: Google Cloud {VOICE_NAME}
+- 언어: {LANGUAGE_LABEL}
 - 자막: {Y/N}
 - BGM: {option}
 ```

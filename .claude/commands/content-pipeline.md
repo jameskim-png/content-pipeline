@@ -72,11 +72,14 @@ else:
 어떤 콘텐츠를 만들까요?
 
 1. Talking Head — AI 캐릭터 토킹헤드 릴스/숏츠
+2. Narration Reel — AI 장면 + 나레이션 릴스
 ```
 
-(향후 타입 추가 시 여기에 옵션 추가. `workflow.json`의 `content_types` 참조.)
+(`workflow.json`의 `content_types` 참조.)
 
-### Step 2: 생성 방식 선택 (Talking Head)
+### Step 2: 생성 방식 선택
+
+#### Talking Head 선택 시
 
 ```
 어떤 방식으로 만들까요?
@@ -85,11 +88,26 @@ else:
 2. 인스타 영상 재창조 — 기존 영상을 AI 캐릭터로
 ```
 
-### Step 2-1: 오리지널 생성
+### Step 2-1: 오리지널 생성 (Talking Head)
 → Read `prompts/talking-head/create.md` → 해당 프롬프트의 지시에 따라 실행
 
-### Step 2-2: 인스타 영상 재창조
+### Step 2-2: 인스타 영상 재창조 (Talking Head)
 → Read `prompts/talking-head/copy.md` → 해당 프롬프트의 지시에 따라 실행
+
+#### Narration Reel 선택 시
+
+```
+어떤 방식으로 만들까요?
+
+1. 오리지널 생성 — 주제로 처음부터
+2. 인스타 영상 재창조 — 기존 영상을 AI 장면으로
+```
+
+### Step 2-3: 오리지널 생성 (Narration Reel)
+→ Read `prompts/narration-reel/create.md` → 해당 프롬프트의 지시에 따라 실행
+
+### Step 2-4: 인스타 영상 재창조 (Narration Reel)
+→ Read `prompts/narration-reel/copy.md` → 해당 프롬프트의 지시에 따라 실행
 
 ---
 

@@ -19,7 +19,7 @@ results = generate_chunk_voices(
     translation=translation,
     output_dir=audio_dir,
     tts_engine='google',
-    voice_name='ko-KR-Chirp3-HD-Leda',
+    voice_name='{VOICE_NAME}',
 )
 for r in results:
     print(f\"  {r['chunk_id']}: {r['actual_duration']:.2f}s\")
@@ -28,7 +28,7 @@ print(f'Generated {len(results)} voice files')
 ```
 
 ## Rules
-- 모델 고정: Google Cloud TTS `ko-KR-Chirp3-HD-Leda`
+- TTS 엔진 고정: Chirp3-HD. 음성은 언어에 따라 자동 결정 (`{VOICE_NAME}`)
 - `script_to_translation_format()` 브릿지 필수
 - 기존 파일은 자동 스킵
 

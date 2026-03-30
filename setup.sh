@@ -61,6 +61,21 @@ fi
 # 6. Create data dirs
 mkdir -p "$PROJECT_DIR/data" "$PROJECT_DIR/output" "$PROJECT_DIR/personas"
 
+# 7. Download Pretendard fonts (for title overlay)
+FONTS_DIR="$PROJECT_DIR/assets/fonts"
+mkdir -p "$FONTS_DIR"
+
+FONT_CDN="https://cdn.jsdelivr.net/gh/fonts-archive/Pretendard"
+FONTS=("Pretendard-Bold.otf" "Pretendard-ExtraBold.otf")
+
+for font in "${FONTS[@]}"; do
+    if [ ! -f "$FONTS_DIR/$font" ]; then
+        echo "Downloading $font..."
+        curl -sL "$FONT_CDN/$font" -o "$FONTS_DIR/$font"
+    fi
+done
+echo "Fonts: OK"
+
 echo ""
 echo "=== Setup Complete ==="
 echo "Run: /content-pipeline"

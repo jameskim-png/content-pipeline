@@ -11,6 +11,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 PERSONAS_DIR = PROJECT_ROOT / "personas"
 MOTION_REFS_DIR = DATA_DIR / "motion-references"
+FONTS_DIR = PROJECT_ROOT / "assets" / "fonts"
 
 load_dotenv(PROJECT_ROOT / ".env")
 
@@ -34,8 +35,8 @@ def validate_keys(model_choice: str = "heygen", tts_engine: str = "fal") -> dict
     """Validate all required API keys based on model choice. Returns key dict."""
     keys = {}
 
-    # kling26 only needs FAL_KEY; heygen needs both FAL + HEYGEN
-    if model_choice.lower() in ("kling26", "kling_avatar", "kling3", "veo3"):
+    # kling26/grok only need FAL_KEY; heygen needs both FAL + HEYGEN
+    if model_choice.lower() in ("kling26", "kling_avatar", "kling3", "veo3", "grok"):
         keys["FAL_KEY"] = get_api_key("FAL_KEY")
     elif model_choice.lower() == "heygen":
         keys["FAL_KEY"] = get_api_key("FAL_KEY")
@@ -137,6 +138,7 @@ def estimate_job_cost(
       Video: heygen ~$0.50/min, kling_avatar ~$0.10/chunk,
              kling3 ~$0.15/chunk (+musetalk $0.05),
              kling26 ~$0.35/chunk (Kling 2.6) + $0.10/chunk (Sync Lipsync),
+             grok ~$0.30/chunk (Grok Imagine Video) + $0.10/chunk (Sync Lipsync),
              veo3 ~$0.25/chunk
       Image gen: ~$0.04/image (1-2 images)
 
@@ -154,14 +156,15 @@ def estimate_job_cost(
     }
     tts_cost = tts_rates.get(tts_engine, tts_rates["fal"])()
 
-    # kling26 only needs 1 reference image; others need character sheet + background
-    image_cost = 0.04 if model.lower() == "kling26" else 0.08
+    # kling26/grok only need 1 reference image; others need character sheet + background
+    image_cost = 0.04 if model.lower() in ("kling26", "grok") else 0.08
 
     video_rates = {
         "heygen": 0.50,
         "kling_avatar": 0.10,
         "kling3": 0.20,
         "kling26": 0.45,  # $0.35 Kling 2.6 + $0.10 Sync Lipsync
+        "grok": 0.40,  # $0.30 Grok Imagine Video + $0.10 Sync Lipsync
         "veo3": 0.25,
     }
     per_chunk_video = video_rates.get(model.lower(), 0.15)
@@ -177,6 +180,61 @@ def estimate_job_cost(
         "video": video_cost,
         "total": total,
         "model": model,
+        "n_chunks": n_chunks,
+        "total_duration_s": total_duration,
+    }
+
+
+def estimate_narration_cost(
+    n_chunks: int,
+    total_duration: float,
+    tts_engine: str = "google",
+    total_chars: int = 0,
+    original_content: bool = False,
+) -> dict:
+    """Estimate cost for narration reel pipeline.
+
+    Key differences from talking-head:
+    - Image: Flux $0.06/image per scene (not character sheet)
+    - Video: Grok $0.05/sec at 720p (no lip sync needed)
+    - No lip sync cost
+    - STT only for copy mode (not original)
+
+    Args:
+        n_chunks: Number of scene chunks.
+        total_duration: Total video duration in seconds.
+        tts_engine: TTS engine ("google", "fal", "elevenlabs").
+        total_chars: Total character count for TTS cost estimation.
+        original_content: If True, skips STT cost.
+    """
+    duration_min = total_duration / 60.0
+
+    stt_cost = 0.0 if original_content else round(duration_min * 0.003, 4)
+
+    # TTS cost (same as talking-head)
+    tts_rates = {
+        "fal": lambda: round(n_chunks * 0.01, 4),
+        "elevenlabs": lambda: round(n_chunks * 0.03, 4),
+        "google": lambda: round(total_chars * 0.000016, 4) if total_chars else round(n_chunks * 0.005, 4),
+    }
+    tts_cost = tts_rates.get(tts_engine, tts_rates["google"])()
+
+    # Image: Flux 1.1 Pro ~$0.06/image, one per scene
+    image_cost = round(n_chunks * 0.06, 4)
+
+    # Video: Grok Imagine Video ~$0.05/sec at 720p, no lip sync
+    video_cost = round(total_duration * 0.05, 4)
+
+    total = round(stt_cost + tts_cost + image_cost + video_cost, 4)
+
+    return {
+        "stt": stt_cost,
+        "tts": tts_cost,
+        "tts_engine": tts_engine,
+        "image": image_cost,
+        "video": video_cost,
+        "total": total,
+        "pipeline": "narration-reel",
         "n_chunks": n_chunks,
         "total_duration_s": total_duration,
     }

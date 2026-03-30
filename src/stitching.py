@@ -96,13 +96,20 @@ def _normalize_chunk(
     target_width: int,
     target_height: int,
 ) -> Path:
-    """Re-encode a chunk to consistent format."""
-    cmd = ["ffmpeg", "-y", "-i", str(video_path)]
+    """Re-encode a chunk to consistent format.
+
+    When external audio is provided and may be longer than video,
+    -stream_loop -1 loops the video so audio is never truncated.
+    """
+    cmd = ["ffmpeg", "-y"]
 
     if audio_path and audio_path.exists():
+        # Loop video infinitely so it's never shorter than audio
+        cmd.extend(["-stream_loop", "-1", "-i", str(video_path)])
         cmd.extend(["-i", str(audio_path)])
         audio_map = ["-map", "0:v:0", "-map", "1:a:0"]
     else:
+        cmd.extend(["-i", str(video_path)])
         audio_map = ["-map", "0:v:0"]
         if _has_audio(video_path):
             audio_map.extend(["-map", "0:a:0"])

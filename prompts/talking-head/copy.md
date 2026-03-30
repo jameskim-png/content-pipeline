@@ -1,6 +1,7 @@
 # Talking Head — 인스타 영상 재창조
 
-인스타그램 영상을 다운로드하고, 분석하고, AI 페르소나로 한국어 영상을 새로 만드는 **전체 파이프라인**.
+인스타그램 영상을 다운로드하고, 분석하고, AI 페르소나로 영상을 새로 만드는 **전체 파이프라인**.
+모델 기본: Grok Imagine Video + Sync Lipsync v2 (Kling 2.6 선택 가능). TTS 엔진 고정: Chirp3-HD (음성은 언어에 따라 자동 결정).
 모든 질문을 처음에 한번에 물어본 후, Phase 1 (분석) → Phase 2 (재창조)를 순차적으로 실행.
 
 ---
@@ -96,9 +97,122 @@ N+1. 새로 만들기
 예시: "어수선한 원룸" / "깔끔한 스튜디오" / "카페"
 ```
 
-### Q6. 자막
+### Q5.5. 콘텐츠 언어
+
+```bash
+source .venv/bin/activate
+python -c "
+from src.languages import list_languages_summary
+print(list_languages_summary())
+"
 ```
-자막 포함? (기본: Y)
+
+```
+콘텐츠 언어를 선택해주세요:
+
+{list_languages_summary 출력}
+
+(기본: 1. 한국어)
+```
+
+- 한국어 선택 → 원본을 한국어로 번역 (기존 동작)
+- 다른 언어 선택 → 원본을 해당 언어로 번역
+
+언어 설정 로드:
+
+```bash
+source .venv/bin/activate
+python -c "
+from src.languages import get_language_config, get_voice_name
+config = get_language_config('{LANG_CODE}')
+print(f\"Language: {config['label']}\")
+print(f\"Voice: {get_voice_name('{LANG_CODE}')}\")
+"
+```
+
+→ `VOICE_NAME`, `LANGUAGE_LABEL`, `LANG_CODE` 변수 설정
+
+### Q5.7. 영상 모델 선택
+
+```
+영상 생성 모델을 선택해주세요:
+
+1. Grok Imagine Video (기본) — 더 자연스러운 움직임
+2. Kling 2.6 Motion Control — 원본 영상 모션 기반
+```
+
+- Grok 선택 (기본) → `MODEL='grok'`
+- Kling26 선택 → `MODEL='kling26'` (원본 영상이 모션 소스 역할)
+
+### Q6. 자막 스타일
+
+```bash
+source .venv/bin/activate
+python -c "
+from src.subtitle_styles import list_styles_summary, load_style_library
+print(list_styles_summary())
+n = len(load_style_library())
+print(f'{n+1}. 새 스타일 만들기')
+print(f'{n+2}. 미리보기')
+print(f'{n+3}. 없음')
+"
+```
+
+```
+자막 스타일을 선택해주세요:
+
+{list_styles_summary 출력}
+N+1. 새 스타일 만들기
+N+2. 미리보기
+N+3. 없음
+```
+
+- 스타일 선택 (1~N) → `SUBTITLE_STYLE` 변수 설정, `SUBTITLES=Y`
+- "없음" → `SUBTITLES=N`
+- "미리보기" → HTML 프리뷰 후 다시 선택
+- "새 스타일 만들기" → 레퍼런스/설명 입력 → Claude 분석 → `save_user_style()` 저장
+
+### Q6.5. 타이틀 오버레이
+
+```
+타이틀을 영상에 표시할까요? (분석 후 추출된 타이틀 사용)
+
+1. 클린 — 흰색, 깔끔한 스트로크
+2. 임팩트 — 노란색, 강렬한 느낌
+3. 박스 — 흰색, 배경 박스
+4. 없음 (기본)
+5. 미리보기 보기 → HTML 샘플 열기
+```
+
+- "미리보기 보기" 선택 시:
+
+```bash
+source .venv/bin/activate
+python -c "
+from src.titles import generate_title_preview_html
+from src.subtitle_styles import load_style_library
+from pathlib import Path
+
+title = '{TITLE}'
+output = Path('{OUTPUT_DIR}/title_preview.html')
+subtitle_styles = load_style_library() if '{SUBTITLES}' == 'Y' else None
+generate_title_preview_html(title, output, subtitle_styles=subtitle_styles)
+print(f'Preview: {output}')
+"
+```
+
+```bash
+open {OUTPUT_DIR}/title_preview.html
+```
+
+→ 브라우저에서 확인 후 다시 1~4 중 선택
+
+- 프리셋 선택 시 (1~3) → 노출 시간 질문:
+
+```
+타이틀 노출 시간:
+1. 전체 (기본)
+2. 첫 5초만 (페이드아웃)
 ```
 
 ### Q7. BGM
@@ -115,7 +229,7 @@ python -c "
 from src.config import validate_keys, check_fal_balance
 import json
 
-keys = validate_keys('kling26')
+keys = validate_keys('{MODEL}')
 print('API Keys OK:')
 for k, v in keys.items():
     print(f'  {k}: {v[:8]}...')
@@ -149,9 +263,10 @@ API 잔액:
 소스: {URL} ({COUNT}개 영상)
 캐릭터: {PERSONA_NAME} — {persona_summary}
 배경: {background_desc}
-모델: Kling 2.6 Motion Control + Sync Lipsync v2 (고정)
-TTS: Google Cloud TTS ko-KR-Chirp3-HD-Leda (고정)
-자막: {Y/N}
+모델: {MODEL_LABEL} + Sync Lipsync v2
+언어: {LANGUAGE_LABEL} ({VOICE_NAME})
+자막: {SUBTITLE_STYLE} (또는 없음)
+타이틀: {TITLE_PRESET} (또는 없음)
 BGM: {BGM_OPTION}
 
 이 설정으로 진행할까요?
@@ -245,7 +360,7 @@ source .venv/bin/activate
 python -c "
 from src.config import estimate_job_cost
 import json
-cost = estimate_job_cost('kling26', {N_CHUNKS}, {TOTAL_DURATION})
+cost = estimate_job_cost('{MODEL}', {N_CHUNKS}, {TOTAL_DURATION})
 print(json.dumps(cost, indent=2))
 "
 ```
@@ -325,7 +440,7 @@ Character Sheet와 Background가 생성되었습니다.
 ```
 
 ### Step 2-2: 번역
-`build_translation_prompt()` → 직접 번역 수행.
+`build_translation_prompt(target_language='{LANGUAGE_LABEL}')` → 직접 번역 수행.
 
 **사용자에게 번역 결과 보여주고 수정 여부 확인:**
 ```
@@ -350,7 +465,7 @@ results = generate_chunk_voices(
     translation=translation,
     output_dir=Path('{OUTPUT_DIR}/audio'),
     tts_engine='google',
-    voice_name='ko-KR-Chirp3-HD-Leda',
+    voice_name='{VOICE_NAME}',
 )
 for r in results:
     print(f\"  {r['chunk_id']}: {r['actual_duration']:.2f}s\")
@@ -358,9 +473,48 @@ print(f'Generated {len(results)} voice files')
 "
 ```
 
-### Step 2-4: 영상 생성 (Kling 2.6 Motion Control + Sync Lipsync v2)
+### Step 2-4: 영상 생성
 
-원본 영상이 모션 소스 역할. 각 청크의 원본 비디오를 source_video_path로 전달:
+`copy-phase-generate.md` 참조. 모델에 따라 분기:
+
+#### Grok (기본)
+
+```bash
+source .venv/bin/activate
+python -c "
+from src.video_gen import generate_chunk_video
+from pathlib import Path
+import json
+
+ref_image = Path('./personas/{PERSONA_NAME}/reference_{STYLE}.png')
+persona_spec = {PERSONA_SPEC_JSON}
+
+chunk_videos = []
+chunks = {CHUNKS_JSON}
+for chunk in chunks:
+    cid = chunk['chunk_id']
+    audio = Path('{OUTPUT_DIR}/audio/' + cid + '_voice.wav')
+    out = Path('{OUTPUT_DIR}/chunks/' + cid + '_video.mp4')
+
+    generate_chunk_video(
+        model='grok',
+        face_image_path=ref_image,
+        audio_path=audio,
+        output_path=out,
+        persona_spec=persona_spec,
+        chunk_text=chunk.get('text', ''),
+        emotion=chunk.get('emotion', ''),
+    )
+    chunk_videos.append({'chunk_id': cid, 'video_path': str(out)})
+    print(f'  {cid} done')
+
+print(json.dumps(chunk_videos, indent=2))
+"
+```
+
+#### Kling 2.6 (사용자가 선택한 경우)
+
+원본 영상이 모션 소스 역할:
 
 ```bash
 source .venv/bin/activate
@@ -371,6 +525,7 @@ import json
 
 face_path = Path('./personas/{PERSONA_NAME}/front_face.png')
 bg_path = Path('./personas/{PERSONA_NAME}/background.png')
+persona_spec = {PERSONA_SPEC_JSON}
 
 chunk_videos = []
 chunks = {CHUNKS_JSON}
@@ -386,6 +541,9 @@ for chunk in chunks:
         output_path=out,
         background_path=bg_path,
         source_video_path=source_video,
+        persona_spec=persona_spec,
+        chunk_text=chunk.get('text', ''),
+        emotion=chunk.get('emotion', ''),
     )
     chunk_videos.append({'chunk_id': cid, 'video_path': str(out)})
     print(f'  {cid} done')
@@ -419,6 +577,7 @@ print(f'Mixed {len(results)} files')
 source .venv/bin/activate
 python -c "
 from src.subtitles import recalculate_subtitle_timings, generate_ass
+from src.subtitle_styles import get_style, style_to_ass_params
 from src.utils import load_json
 from pathlib import Path
 
@@ -428,7 +587,8 @@ translation = load_json(Path('{OUTPUT_DIR}/translated_script.json'))
 # Recalculate timings based on actual TTS durations
 subtitle_chunks = recalculate_subtitle_timings(voice_manifest, translation['chunks'])
 
-generate_ass(subtitle_chunks, Path('{OUTPUT_DIR}/subtitles.ass'))
+style_params = style_to_ass_params(get_style('{SUBTITLE_STYLE}'))
+generate_ass(subtitle_chunks, Path('{OUTPUT_DIR}/subtitles.ass'), **style_params)
 print(f'Subtitles generated with {len(subtitle_chunks)} entries')
 "
 ```
@@ -464,6 +624,26 @@ burn_subtitles(
 "
 ```
 
+타이틀 번인 (선택):
+```bash
+source .venv/bin/activate
+python -c "
+from src.titles import burn_title
+from pathlib import Path
+
+# 자막이 있으면 subtitled 영상 위에, 없으면 final 위에
+video = Path('{OUTPUT_DIR}/final_subtitled.mp4') if Path('{OUTPUT_DIR}/final_subtitled.mp4').exists() else Path('{OUTPUT_DIR}/final.mp4')
+output = Path('{OUTPUT_DIR}/final_titled.mp4')
+
+burn_title(video, '{TITLE}', '{TITLE_PRESET}', output, duration='{TITLE_DURATION}')
+print(f'Titled video: {output}')
+"
+```
+
+- `TITLE_PRESET`: "clean", "impact", or "box"
+- `TITLE_DURATION`: "full" or "intro"
+- 타이틀이 있으면 최종 파일은 `final_titled.mp4`
+
 ### Step 2-8: 확장 메타데이터 저장
 
 파이프라인 완료 후 사용된 설정을 persona metadata에 저장 (다음 실행에서 재사용):
@@ -478,7 +658,7 @@ save_persona_metadata(
     {PERSONA_SPEC_JSON},
     '{BACKGROUND_DESC}',
     {'character_sheet_prompt': 'auto', 'background_prompt': 'auto'},
-    video_model='kling26',
+    video_model='{MODEL}',
     tts_engine='google',
 )
 print('Metadata saved')
@@ -502,9 +682,9 @@ data/{account}/{video_id}/
 output/{video_id}/
 ├── final.mp4 (또는 final_subtitled.mp4)
 ├── 캐릭터: {persona_name}
-├── 모델: Kling 2.6 + Sync Lipsync v2
-├── TTS: Google Cloud ko-KR-Chirp3-HD-Leda
-└── 자막: {Y/N}
+├── 모델: {MODEL_LABEL} + Sync Lipsync v2
+├── 언어: {LANGUAGE_LABEL} ({VOICE_NAME})
+└── 자막: {SUBTITLE_STYLE} (또는 없음)
 
 personas/{persona_name}/
 ├── character_sheet.png
@@ -533,6 +713,9 @@ personas/{persona_name}/
 8. **에러 시 해당 스텝만 재시도** — 이전 결과 보존 (skip 로직 내장)
 9. **진행 상황 계속 표시** — 각 스텝 완료/진행 중 상태 알려주기
 10. **비용 추적** — 잔액 체크 + 예상 비용 표시
-11. **모델 고정** — Kling 2.6 Motion Control + Sync Lipsync v2. 선택지 없음
-12. **TTS 고정** — Google Cloud TTS `ko-KR-Chirp3-HD-Leda`. 선택지 없음
+11. **모델 기본 Grok** — Grok Imagine Video + Sync Lipsync v2. Kling 2.6 선택 가능
+16. **모션 소스** — Kling26 선택 시 원본 영상을 모션 소스로 사용. Grok은 모션 소스 불필요
+12. **TTS 엔진 고정** — Chirp3-HD. 음성은 언어에 따라 자동 결정 (`{VOICE_NAME}`)
 13. **메타데이터 저장** — 파이프라인 완료 후 확장 필드 저장
+14. **언어 기본값** — 모든 기본값은 한국어 (`ko`). `get_voice_name()`으로 음성 자동 결정
+15. **자막 스타일** — `subtitle_styles.py` 라이브러리에서 선택. `style_to_ass_params()`로 변환
